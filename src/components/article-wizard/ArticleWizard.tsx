@@ -1,80 +1,98 @@
-"use client";
+// src/components/article-wizard/ArticleWizard.tsx
+'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { WizardFormData } from '@/types/wizard';
+import Step1_Idea from './Step1_Idea';
+import Step2_Refine from './Step2_Refine';
+import Step3_Configure from './Step3_Configure';
+import Step4_Generate from './Step4_Generate';
 
-interface WizardFormData {
-  topic: string;
-  title: string;
-  keywords: string[];
-  length?: number;
-  tone?: string;
-  // Ateityje čia pradėsime daugiau laukų
-}
+const TOTAL_STEPS = 4;
 
-import { Step1_Idea } from "./steps/Step1_Idea";
-import { Step2_Refine } from "./steps/Step2_Refine";
-import { Step3_Configure } from "./steps/Step3_Configure";
-import { Step4_Generate } from "./steps/Step4_Generate";
-import { WizardProgress } from "./WizardProgress";
+const PlaceholderStep = ({ stepName }: { stepName: string }) => (
+  <div className="p-8 border-2 border-dashed border-primary/20 rounded-lg text-center">
+    <h2 className="text-xl font-semibold">Placeholder for: {stepName}</h2>
+    <p className="text-slate-400">This component will be built in the next task.</p>
+  </div>
+);
 
 export default function ArticleWizard() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<WizardFormData>({
     topic: '',
-    title: '',
+    selectedTitle: '',
     keywords: [],
+    articleConfig: {
+      length: 'medium',
+      tone: 'professional',
+    },
+    generatedArticle: '',
   });
 
-  const handleNextStep = () => setCurrentStep(prev => prev + 1);
-  const handlePreviousStep = () => setCurrentStep(prev => prev - 1);
+  const handleNextStep = () => {
+    // Prevent going past the last step
+    if (currentStep < TOTAL_STEPS) {
+      setCurrentStep((prevStep) => prevStep + 1);
+    }
+  };
 
-  const updateFormData = (newData: Partial<WizardFormData>) => {
-    setFormData(prev => ({ ...prev, ...newData }));
+  const handlePreviousStep = () => {
+    setCurrentStep((prevStep) => Math.max(1, prevStep - 1));
+  };
+
+  const updateFormData = (data: Partial<WizardFormData>) => {
+    setFormData((prevData) => ({ ...prevData, ...data }));
   };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        return <Step1_Idea
-          onNextStep={handleNextStep}
-          updateFormData={updateFormData}
-        />;
+        return (
+          <Step1_Idea
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+          />
+        );
       case 2:
-        return <Step2_Refine
-          onNextStep={handleNextStep}
-          onPreviousStep={handlePreviousStep}
-          updateFormData={updateFormData}
-        />;
+        return (
+          <Step2_Refine
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+            handlePreviousStep={handlePreviousStep}
+          />
+        );
       case 3:
-        return <Step3_Configure
-          onNextStep={handleNextStep}
-          onPreviousStep={handlePreviousStep}
-          updateFormData={updateFormData}
-        />;
+        return (
+          <Step3_Configure
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+            handlePreviousStep={handlePreviousStep}
+          />
+        );
       case 4:
-        return <Step4_Generate
-          onPreviousStep={handlePreviousStep}
-        />;
+        return <Step4_Generate handlePreviousStep={handlePreviousStep} />;
       default:
-        return null;
+        // Fallback to step 1 if state is invalid
+        return (
+          <Step1_Idea
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+          />
+        );
     }
   };
 
   return (
     <div>
-      <WizardProgress currentStep={currentStep} totalSteps={4} />
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderCurrentStep()}
-        </motion.div>
-      </AnimatePresence>
+      {/* We will add a progress bar here later */}
+      <div className="mt-8">
+        {renderCurrentStep()}
+      </div>
     </div>
   );
 }

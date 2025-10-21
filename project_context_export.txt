@@ -416,26 +416,29 @@ export default nextConfig;
     "lint": "eslint"
   },
   "dependencies": {
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-radio-group": "^1.3.8",
     "@radix-ui/react-slot": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
     "next": "15.5.6",
+    "next-themes": "^0.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.5.6",
-    "tailwindcss": "^4",
-    "tw-animate-css": "^1.4.0",
+    "tailwindcss": "^3.4.0",
     "typescript": "^5"
   }
 }
@@ -444,7 +447,10 @@ export default nextConfig;
 
 --- START OF FILE postcss.config.mjs ---
 const config = {
-  plugins: ["@tailwindcss/postcss"],
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
 };
 
 export default config;
@@ -452,149 +458,87 @@ export default config;
 --- END OF FILE postcss.config.mjs ---
 
 --- START OF FILE src/app/globals.css ---
-@import "tailwindcss";
-@import "tw-animate-css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@custom-variant dark (&:is(.dark *));
+@layer base {
+  /* Light theme (default) */
+  :root {
+    --background: 0 0% 100%; /* Balta */
+    --foreground: 240 10% 3.9%; /* Tamsus tekstas */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262.1 83.3% 57.8%; /* Tas pats ryškus akcentas */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 262.1 83.3% 57.8%;
+    --radius: 0.75rem;
+  }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
-
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark theme */
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 262.1 83.3% 57.8%;
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 --- END OF FILE src/app/globals.css ---
 
 --- START OF FILE src/app/layout.tsx ---
+// src/app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Create Next App",
-  description: "Generated by create next app",
+  title: "Article Master AI",
+  description: "AI-powered article generation demo",
 };
 
 export default function RootLayout({
@@ -603,11 +547,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-white`}
-      >
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} font-sans antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="absolute top-4 right-4">
+            <ThemeToggle />
+          </div>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
@@ -616,19 +568,513 @@ export default function RootLayout({
 --- END OF FILE src/app/layout.tsx ---
 
 --- START OF FILE src/app/page.tsx ---
+// src/app/page.tsx
+import ArticleWizard from '@/components/article-wizard/ArticleWizard';
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
       <div className="w-full max-w-2xl">
-        {/* The ArticleWizard component will be placed here in the next task */}
-        <h1 className="text-2xl font-bold text-center">Article Master AI</h1>
-        <p className="text-center text-slate-400">Foundation is set. Ready for the next step.</p>
+        <ArticleWizard />
       </div>
     </main>
   );
 }
 
 --- END OF FILE src/app/page.tsx ---
+
+--- START OF FILE src/components/article-wizard/ArticleWizard.tsx ---
+// src/components/article-wizard/ArticleWizard.tsx
+'use client';
+
+import { useState } from 'react';
+import { WizardFormData } from '@/types/wizard';
+import Step1_Idea from './Step1_Idea';
+import Step2_Refine from './Step2_Refine';
+import Step3_Configure from './Step3_Configure';
+import Step4_Generate from './Step4_Generate';
+
+const PlaceholderStep = ({ stepName }: { stepName: string }) => (
+  <div className="p-8 border-2 border-dashed border-primary/20 rounded-lg text-center">
+    <h2 className="text-xl font-semibold">Placeholder for: {stepName}</h2>
+    <p className="text-slate-400">This component will be built in the next task.</p>
+  </div>
+);
+
+export default function ArticleWizard() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<WizardFormData>({
+    topic: '',
+    selectedTitle: '',
+    keywords: [],
+    articleConfig: {
+      length: 'medium',
+      tone: 'professional',
+    },
+    generatedArticle: '',
+  });
+
+  const handleNextStep = () => {
+    // Prevent going past the last step
+    if (currentStep < 4) {
+      setCurrentStep((prevStep) => prevStep + 1);
+    }
+  };
+
+  const handlePreviousStep = () => {
+    setCurrentStep((prevStep) => Math.max(1, prevStep - 1));
+  };
+
+  const updateFormData = (data: Partial<WizardFormData>) => {
+    setFormData((prevData) => ({ ...prevData, ...data }));
+  };
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <Step1_Idea
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+          />
+        );
+      case 2:
+        return (
+          <Step2_Refine
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+            handlePreviousStep={handlePreviousStep}
+          />
+        );
+      case 3:
+        return (
+          <Step3_Configure
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+            handlePreviousStep={handlePreviousStep}
+          />
+        );
+      case 4:
+        return <Step4_Generate handlePreviousStep={handlePreviousStep} />;
+      default:
+        // Fallback to step 1 if state is invalid
+        return (
+          <Step1_Idea
+            formData={formData}
+            updateFormData={updateFormData}
+            handleNextStep={handleNextStep}
+          />
+        );
+    }
+  };
+
+  return (
+    <div>
+      {/* We will add a progress bar here later */}
+      <div className="mt-8">
+        {renderCurrentStep()}
+      </div>
+    </div>
+  );
+}
+
+--- END OF FILE src/components/article-wizard/ArticleWizard.tsx ---
+
+--- START OF FILE src/components/article-wizard/Step1_Idea.tsx ---
+// src/components/article-wizard/Step1_Idea.tsx
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { WizardFormData } from '@/types/wizard';
+import { ArrowRight } from 'lucide-react';
+
+interface Step1Props {
+  formData: WizardFormData;
+  updateFormData: (data: Partial<WizardFormData>) => void;
+  handleNextStep: () => void;
+}
+
+export default function Step1_Idea({ formData, updateFormData, handleNextStep }: Step1Props) {
+  const [topic, setTopic] = useState(formData.topic || '');
+
+  const handleNext = () => {
+    if (topic.trim()) {
+      updateFormData({ topic });
+      handleNextStep();
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-2xl">Let's start with a topic</CardTitle>
+        <CardDescription>
+          What is the main subject you want to write an article about?
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="topic">Article Topic</Label>
+            <Input
+              id="topic"
+              placeholder="e.g., The Future of Renewable Energy"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <Button onClick={handleNext} disabled={!topic.trim()} className="w-full">
+            Generate Titles
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+--- END OF FILE src/components/article-wizard/Step1_Idea.tsx ---
+
+--- START OF FILE src/components/article-wizard/Step2_Refine.tsx ---
+// src/components/article-wizard/Step2_Refine.tsx
+'use client';
+
+import { WizardFormData } from '@/types/wizard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+
+interface Step2Props {
+  formData: WizardFormData;
+  updateFormData: (data: Partial<WizardFormData>) => void;
+  handleNextStep: () => void;
+  handlePreviousStep: () => void;
+}
+
+// Mock data for demonstration purposes
+const mockTitles = [
+  "The Unseen Revolution: How AI is Reshaping Modern Industries",
+  "Beyond the Hype: A Realistic Look at AI's Impact on Our Future",
+  "AI in 2025: Trends, Challenges, and Opportunities Ahead",
+  "From Automation to Augmentation: The New Era of Artificial Intelligence",
+  "Decoding the AI Black Box: Understanding How Modern AI Works"
+];
+
+export default function Step2_Refine({ formData, updateFormData, handleNextStep, handlePreviousStep }: Step2Props) {
+  const [selectedTitle, setSelectedTitle] = useState(formData.selectedTitle || '');
+
+  const handleSelectTitle = (title: string) => {
+    setSelectedTitle(title);
+    // Automatically proceed to the next step upon selection for a fluid experience
+    setTimeout(() => {
+      updateFormData({ selectedTitle: title });
+      handleNextStep();
+    }, 500); // A brief delay to show the selection animation
+  };
+
+  // Animation variants for Framer Motion
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+    },
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-2xl">Choose the Perfect Title</CardTitle>
+        <CardDescription>
+          We've generated a few title options for your topic: "{formData.topic}". Select the one you like best.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <motion.div
+          className="space-y-3"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {mockTitles.map((title, index) => (
+            <motion.button
+              key={index}
+              variants={itemVariants}
+              onClick={() => handleSelectTitle(title)}
+              className="w-full text-left p-4 rounded-lg border transition-all duration-300 ease-in-out"
+              style={{
+                // inline styles for dynamic properties
+                borderColor: selectedTitle === title ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                backgroundColor: selectedTitle === title ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{title}</span>
+                {selectedTitle === title && (
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                  </motion.div>
+                )}
+              </div>
+            </motion.button>
+          ))}
+        </motion.div>
+        <div className="mt-6 flex justify-start">
+          <Button variant="outline" onClick={handlePreviousStep}>
+            Back to Topic
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+--- END OF FILE src/components/article-wizard/Step2_Refine.tsx ---
+
+--- START OF FILE src/components/article-wizard/Step3_Configure.tsx ---
+// src/components/article-wizard/Step3_Configure.tsx
+'use client';
+
+import { WizardFormData } from '@/types/wizard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ArrowRight } from 'lucide-react';
+
+interface Step3Props {
+  formData: WizardFormData;
+  updateFormData: (data: Partial<WizardFormData>) => void;
+  handleNextStep: () => void;
+  handlePreviousStep: () => void;
+}
+
+export default function Step3_Configure({ formData, updateFormData, handleNextStep, handlePreviousStep }: Step3Props) {
+  const { articleConfig } = formData;
+
+  const setConfig = (key: keyof typeof articleConfig, value: string) => {
+    updateFormData({
+      articleConfig: {
+        ...articleConfig,
+        [key]: value,
+      },
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-2xl">Fine-tune your article</CardTitle>
+        <CardDescription>
+          Set the desired length and tone for the generated content.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Article Length */}
+        <div className="space-y-3">
+          <Label>Article Length</Label>
+          <RadioGroup
+            value={articleConfig.length}
+            onValueChange={(value) => setConfig('length', value)}
+            className="flex flex-col sm:flex-row gap-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="short" id="short" />
+              <Label htmlFor="short" className="font-normal">Short (~500 words)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="medium" id="medium" />
+              <Label htmlFor="medium" className="font-normal">Medium (~1000 words)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="long" id="long" />
+              <Label htmlFor="long" className="font-normal">Long (~1500+ words)</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Article Tone */}
+        <div className="space-y-3">
+          <Label>Tone of Voice</Label>
+          <RadioGroup
+            value={articleConfig.tone}
+            onValueChange={(value) => setConfig('tone', value)}
+            className="flex flex-col sm:flex-row gap-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="professional" id="professional" />
+              <Label htmlFor="professional" className="font-normal">Professional</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="casual" id="casual" />
+              <Label htmlFor="casual" className="font-normal">Casual</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="formal" id="formal" />
+              <Label htmlFor="formal" className="font-normal">Formal</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="flex justify-between mt-8">
+          <Button variant="outline" onClick={handlePreviousStep}>
+            Back to Title
+          </Button>
+          <Button onClick={handleNextStep}>
+            Generate Article
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+--- END OF FILE src/components/article-wizard/Step3_Configure.tsx ---
+
+--- START OF FILE src/components/article-wizard/Step4_Generate.tsx ---
+// src/components/article-wizard/Step4_Generate.tsx
+'use client';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+interface Step4Props {
+  handlePreviousStep: () => void;
+}
+
+const mockArticle = `
+In the ever-evolving landscape of technology, Artificial Intelligence (AI) stands as a monumental pillar of innovation. Once a concept confined to science fiction, AI has now permeated nearly every facet of our daily lives, reshaping industries from healthcare to finance...
+
+(This is a mock article generated for demonstration purposes. The actual content will be created by the AI in the next development phase.)
+`;
+
+export default function Step4_Generate({ handlePreviousStep }: Step4Props) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate AI generation time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2500); // 2.5 seconds delay
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleStartOver = () => {
+    // In a real app, this would likely reset the wizard state.
+    // For the prototype, we can just reload the page.
+    window.location.reload();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-2xl">Your Article is Ready!</CardTitle>
+        <CardDescription>
+          Here is the generated content. You can now review, edit, and export it.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center min-h-[200px] space-y-3"
+          >
+            <Loader2 className="h-10 w-10 text-primary animate-spin" />
+            <p className="font-semibold">AI is writing your article...</p>
+            <p className="text-sm text-muted-foreground">This may take a moment.</p>
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <div className="prose prose-invert max-w-none p-4 border rounded-md bg-secondary/30 min-h-[200px]">
+              <p>{mockArticle.trim()}</p>
+            </div>
+          </motion.div>
+        )}
+
+        <div className="flex justify-between mt-8">
+          <Button variant="outline" onClick={handlePreviousStep} disabled={isLoading}>
+            Back to Config
+          </Button>
+          <Button onClick={handleStartOver} variant="destructive">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Start Over
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+--- END OF FILE src/components/article-wizard/Step4_Generate.tsx ---
+
+--- START OF FILE src/components/theme-provider.tsx ---
+// src/components/theme-provider.tsx
+'use client';
+
+import * as React from 'react';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
+
+export function ThemeProvider({ children, ...props }: React.ComponentProps<typeof NextThemesProvider>) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+}
+
+--- END OF FILE src/components/theme-provider.tsx ---
+
+--- START OF FILE src/components/theme-toggle.tsx ---
+// src/components/theme-toggle.tsx
+'use client';
+
+import * as React from 'react';
+import { Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
+
+import { Button } from "@/components/ui/button";
+
+export function ThemeToggle() {
+  const { setTheme, theme } = useTheme();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+    >
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  );
+}
+
+--- END OF FILE src/components/theme-toggle.tsx ---
 
 --- START OF FILE src/components/ui/button.tsx ---
 import * as React from "react"
@@ -694,6 +1140,204 @@ export { Button, buttonVariants }
 
 --- END OF FILE src/components/ui/button.tsx ---
 
+--- START OF FILE src/components/ui/card.tsx ---
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Card({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card"
+      className={cn(
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-header"
+      className={cn(
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-title"
+      className={cn("leading-none font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+function CardAction({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-action"
+      className={cn(
+        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardContent({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-content"
+      className={cn("px-6", className)}
+      {...props}
+    />
+  )
+}
+
+function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-footer"
+      className={cn("flex items-center px-6 [.border-t]:pt-6", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardAction,
+  CardDescription,
+  CardContent,
+}
+
+--- END OF FILE src/components/ui/card.tsx ---
+
+--- START OF FILE src/components/ui/input.tsx ---
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  return (
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Input }
+
+--- END OF FILE src/components/ui/input.tsx ---
+
+--- START OF FILE src/components/ui/label.tsx ---
+"use client"
+
+import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
+
+import { cn } from "@/lib/utils"
+
+function Label({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+  return (
+    <LabelPrimitive.Root
+      data-slot="label"
+      className={cn(
+        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Label }
+
+--- END OF FILE src/components/ui/label.tsx ---
+
+--- START OF FILE src/components/ui/radio-group.tsx ---
+"use client"
+
+import * as React from "react"
+import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
+import { CircleIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function RadioGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
+  return (
+    <RadioGroupPrimitive.Root
+      data-slot="radio-group"
+      className={cn("grid gap-3", className)}
+      {...props}
+    />
+  )
+}
+
+function RadioGroupItem({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadioGroupPrimitive.Item>) {
+  return (
+    <RadioGroupPrimitive.Item
+      data-slot="radio-group-item"
+      className={cn(
+        "border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <RadioGroupPrimitive.Indicator
+        data-slot="radio-group-indicator"
+        className="relative flex items-center justify-center"
+      >
+        <CircleIcon className="fill-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2" />
+      </RadioGroupPrimitive.Indicator>
+    </RadioGroupPrimitive.Item>
+  )
+}
+
+export { RadioGroup, RadioGroupItem }
+
+--- END OF FILE src/components/ui/radio-group.tsx ---
+
 --- START OF FILE src/lib/utils.ts ---
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -703,6 +1347,105 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 --- END OF FILE src/lib/utils.ts ---
+
+--- START OF FILE src/types/wizard.ts ---
+// src/types/wizard.ts
+export interface WizardFormData {
+  topic: string;
+  selectedTitle: string;
+  keywords: string[];
+  articleConfig: {
+    length: 'short' | 'medium' | 'long';
+    tone: 'formal' | 'casual' | 'professional';
+  };
+  generatedArticle: string;
+}
+
+--- END OF FILE src/types/wizard.ts ---
+
+--- START OF FILE tailwind.config.ts ---
+import type { Config } from "tailwindcss"
+
+const config = {
+  darkMode: ["class"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+  ],
+  prefix: "",
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+
+} satisfies Config
+
+export default config
+
+--- END OF FILE tailwind.config.ts ---
 
 --- START OF FILE tsconfig.json ---
 {
