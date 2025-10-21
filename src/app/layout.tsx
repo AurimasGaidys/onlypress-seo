@@ -1,18 +1,20 @@
 // src/app/layout.tsx
-import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
+import type { Metadata } from 'next';
+import { Geist } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/components/theme-provider';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { AuthProvider } from '@/context/AuthContext'; // Import the provider
+import Sidebar from '@/components/sidebar';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "Article Master AI",
-  description: "AI-powered article generation demo",
+  title: 'Article Master AI',
+  description: 'AI-powered document platform',
 };
 
 export default function RootLayout({
@@ -29,10 +31,19 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="fixed top-4 right-4 z-50">
-            <ThemeToggle />
-          </div>
-          {children}
+          <AuthProvider> {/* Wrap with AuthProvider */}
+            <ResizablePanelGroup direction="horizontal" className="min-h-screen w-full">
+              <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+                <Sidebar />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={80}>
+                <main className="h-full overflow-y-auto p-8">
+                  {children}
+                </main>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

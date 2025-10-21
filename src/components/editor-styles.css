@@ -1,0 +1,18 @@
+/* src/components/editor-styles.css */
+
+.ProseMirror {
+  min-height: 400px;
+}
+
+.ProseMirror p {
+  margin-bottom: 1em;
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}

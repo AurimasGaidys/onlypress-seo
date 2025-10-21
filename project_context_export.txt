@@ -418,7 +418,12 @@ export default nextConfig;
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-radio-group": "^1.3.8",
+    "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@tiptap/pm": "^3.7.2",
+    "@tiptap/react": "^3.7.2",
+    "@tiptap/starter-kit": "^3.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
@@ -427,11 +432,13 @@ export default nextConfig;
     "next-themes": "^0.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-resizable-panels": "^3.0.6",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -456,6 +463,50 @@ const config = {
 export default config;
 
 --- END OF FILE postcss.config.mjs ---
+
+--- START OF FILE src/app/docs/[documentId]/page.tsx ---
+// src/app/docs/[documentId]/page.tsx
+'use client';
+
+import Editor from '@/components/editor';
+import AIAssistantSidebar from '@/components/ai-assistant-sidebar'; // Import the new sidebar
+
+// Mock database lookup
+const mockDocumentContent: { [key: string]: string } = {
+  '1': '<h1>The Future of AI</h1><p>Exploring the rapid advancements in artificial intelligence and its potential impact on society...</p>',
+  '2': '<h1>Marketing Strategy Q3</h1><p>A comprehensive plan for the third quarter, focusing on digital outreach and brand awareness...</p>',
+  '3': '<h1>Untitled doc</h1><p>We have a mobile application created using React...</p>',
+  // Add more mock content for other IDs as needed
+};
+
+// A simple function to get content, which handles the dynamic new doc ID
+const getMockContent = (id: string) => {
+  if (mockDocumentContent[id]) {
+    return mockDocumentContent[id];
+  }
+  // If the ID is not in our static list, assume it's a new document
+  return `<h1>New Document: ${id}</h1><p>This is a newly generated document. Start editing!</p>`;
+}
+
+export default function DocumentPage({ params }: { params: { documentId: string } }) {
+  const content = getMockContent(params.documentId);
+
+  return (
+    <div className="flex gap-8 items-start">
+      {/* Main Editor Area */}
+      <div className="flex-grow">
+        <Editor content={content} />
+      </div>
+
+      {/* AI Assistant Sidebar */}
+      <div className="w-full max-w-xs sticky top-8">
+        <AIAssistantSidebar />
+      </div>
+    </div>
+  );
+}
+
+--- END OF FILE src/app/docs/[documentId]/page.tsx ---
 
 --- START OF FILE src/app/globals.css ---
 @tailwind base;
@@ -525,20 +576,21 @@ export default config;
 
 --- START OF FILE src/app/layout.tsx ---
 // src/app/layout.tsx
-import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
+import type { Metadata } from 'next';
+import { Geist } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/components/theme-provider';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import Sidebar from '@/components/sidebar';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "Article Master AI",
-  description: "AI-powered article generation demo",
+  title: 'Article Master AI',
+  description: 'AI-powered document platform',
 };
 
 export default function RootLayout({
@@ -555,10 +607,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="absolute top-4 right-4">
-            <ThemeToggle />
-          </div>
-          {children}
+          <ResizablePanelGroup direction="horizontal" className="min-h-screen w-full">
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+              <Sidebar />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={80}>
+              <main className="h-full overflow-y-auto p-8">
+                {children}
+              </main>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ThemeProvider>
       </body>
     </html>
@@ -567,126 +626,181 @@ export default function RootLayout({
 
 --- END OF FILE src/app/layout.tsx ---
 
---- START OF FILE src/app/page.tsx ---
-// src/app/page.tsx
+--- START OF FILE src/app/new/page.tsx ---
+// src/app/new/page.tsx
 import ArticleWizard from '@/components/article-wizard/ArticleWizard';
 
-export default function Home() {
+export default function NewDocumentPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="w-full max-w-2xl">
-        <ArticleWizard />
+    <div>
+      {/* The wizard itself provides the main UI, so we don't need much else here */}
+      <ArticleWizard />
+    </div>
+  );
+}
+
+--- END OF FILE src/app/new/page.tsx ---
+
+--- START OF FILE src/app/page.tsx ---
+// src/app/page.tsx
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import DocumentCard from "@/components/document-card";
+import Link from "next/link"; // Add this import
+import { PlusCircle, Search } from "lucide-react";
+
+// Mock data to simulate user's documents
+const mockDocuments = [
+  { id: 1, title: "The Future of AI", snippet: "Exploring the rapid advancements in artificial intelligence and its potential impact on society...", lastEdited: "2 hours ago" },
+  { id: 2, title: "Marketing Strategy Q3", snippet: "A comprehensive plan for the third quarter, focusing on digital outreach and brand awareness...", lastEdited: "1 day ago" },
+  { id: 3, title: "Untitled doc", snippet: "We have a mobile application created using React...", lastEdited: "3 days ago" },
+  { id: 4, title: "Project Phoenix Notes", snippet: "Initial brainstorming session notes, key takeaways, and action items for the team...", lastEdited: "5 days ago" },
+  { id: 5, title: "Blog Post: 10 Tips for Remote Work", snippet: "Practical advice for staying productive and maintaining a healthy work-life balance while working from home...", lastEdited: "1 week ago" },
+  { id: 6, title: "Annual Report Draft", snippet: "First draft of the 2024 annual report, pending review from the finance department...", lastEdited: "2 weeks ago" },
+];
+
+export default function DashboardPage() {
+  return (
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Docs</h1>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search docs..." className="pl-9 w-64" />
+          </div>
+          <Link href="/new"> {/* Wrap the Button with Link */}
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New doc
+            </Button>
+          </Link>
+        </div>
       </div>
-    </main>
+
+      {/* Documents Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {mockDocuments.map((doc) => (
+          <DocumentCard
+            key={doc.id}
+            id={doc.id} // <-- Pass the ID here
+            title={doc.title}
+            snippet={doc.snippet}
+            lastEdited={doc.lastEdited}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
 --- END OF FILE src/app/page.tsx ---
 
---- START OF FILE src/components/article-wizard/ArticleWizard.tsx ---
-// src/components/article-wizard/ArticleWizard.tsx
+--- START OF FILE src/components/ai-assistant-sidebar.tsx ---
+// src/components/ai-assistant-sidebar.tsx
 'use client';
 
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Separator } from "./ui/separator";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
+import { BrainCircuit, Lightbulb, PenSquare, SearchCheck } from "lucide-react";
+
+export default function AIAssistantSidebar() {
+  return (
+    <aside className="space-y-6">
+      {/* Suggestions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <BrainCircuit className="mr-2 h-5 w-5" />
+            AI Suggestions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Let the AI review your text and provide suggestions.
+          </p>
+          <Button className="w-full" disabled>Review suggestions</Button>
+        </CardContent>
+      </Card>
+
+      {/* Actions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">What do you want to do?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button variant="outline" className="w-full justify-start" disabled>
+            <PenSquare className="mr-2 h-4 w-4" />
+            Improve it
+          </Button>
+          <Button variant="outline" className="w-full justify-start" disabled>
+            <SearchCheck className="mr-2 h-4 w-4" />
+            Identify any gaps
+          </Button>
+          <Button variant="outline" className="w-full justify-start" disabled>
+            <Lightbulb className="mr-2 h-4 w-4" />
+            More ideas
+          </Button>
+        </CardContent>
+      </Card>
+    </aside>
+  );
+}
+
+--- END OF FILE src/components/ai-assistant-sidebar.tsx ---
+
+--- START OF FILE src/components/article-wizard/ArticleWizard.tsx ---
+'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { WizardFormData } from '@/types/wizard';
 import Step1_Idea from './Step1_Idea';
 import Step2_Refine from './Step2_Refine';
 import Step3_Configure from './Step3_Configure';
 import Step4_Generate from './Step4_Generate';
 
-const PlaceholderStep = ({ stepName }: { stepName: string }) => (
-  <div className="p-8 border-2 border-dashed border-primary/20 rounded-lg text-center">
-    <h2 className="text-xl font-semibold">Placeholder for: {stepName}</h2>
-    <p className="text-slate-400">This component will be built in the next task.</p>
-  </div>
-);
+const TOTAL_STEPS = 4;
 
 export default function ArticleWizard() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<WizardFormData>({
-    topic: '',
-    selectedTitle: '',
-    keywords: [],
-    articleConfig: {
-      length: 'medium',
-      tone: 'professional',
-    },
-    generatedArticle: '',
-  });
+  const [formData, setFormData] = useState<WizardFormData>({ topic: '', selectedTitle: '', keywords: [], articleConfig: { length: 'medium', tone: 'professional' }, generatedArticle: '' });
+  
+  const handleNextStep = () => { if (currentStep < TOTAL_STEPS) setCurrentStep((prev) => prev + 1) };
+  const handlePreviousStep = () => { setCurrentStep((prev) => Math.max(1, prev)) };
+  const updateFormData = (data: Partial<WizardFormData>) => { setFormData((prev) => ({ ...prev, ...data })) };
 
-  const handleNextStep = () => {
-    // Prevent going past the last step
-    if (currentStep < 4) {
-      setCurrentStep((prevStep) => prevStep + 1);
-    }
-  };
-
-  const handlePreviousStep = () => {
-    setCurrentStep((prevStep) => Math.max(1, prevStep - 1));
-  };
-
-  const updateFormData = (data: Partial<WizardFormData>) => {
-    setFormData((prevData) => ({ ...prevData, ...data }));
+  const handleFinish = () => {
+    // In a real app, we would save the formData to the database here
+    // and get back a new document ID.
+    // For this prototype, we'll simulate it and redirect.
+    const newDocId = Date.now(); // Simulate a unique ID
+    console.log('Wizard finished. Final data:', formData);
+    console.log(`Redirecting to /docs/${newDocId}`);
+    router.push(`/docs/${newDocId}`);
   };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 1:
-        return (
-          <Step1_Idea
-            formData={formData}
-            updateFormData={updateFormData}
-            handleNextStep={handleNextStep}
-          />
-        );
-      case 2:
-        return (
-          <Step2_Refine
-            formData={formData}
-            updateFormData={updateFormData}
-            handleNextStep={handleNextStep}
-            handlePreviousStep={handlePreviousStep}
-          />
-        );
-      case 3:
-        return (
-          <Step3_Configure
-            formData={formData}
-            updateFormData={updateFormData}
-            handleNextStep={handleNextStep}
-            handlePreviousStep={handlePreviousStep}
-          />
-        );
-      case 4:
-        return <Step4_Generate handlePreviousStep={handlePreviousStep} />;
-      default:
-        // Fallback to step 1 if state is invalid
-        return (
-          <Step1_Idea
-            formData={formData}
-            updateFormData={updateFormData}
-            handleNextStep={handleNextStep}
-          />
-        );
+      case 1: return <Step1_Idea formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} />;
+      case 2: return <Step2_Refine formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} handlePreviousStep={handlePreviousStep} />;
+      case 3: return <Step3_Configure formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} handlePreviousStep={handlePreviousStep} />;
+      case 4: return <Step4_Generate handleFinish={handleFinish} />;
+      default: return <Step1_Idea formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} />;
     }
   };
 
-  return (
-    <div>
-      {/* We will add a progress bar here later */}
-      <div className="mt-8">
-        {renderCurrentStep()}
-      </div>
-    </div>
-  );
+  return <div><div className="mt-8">{renderCurrentStep()}</div></div>;
 }
 
 --- END OF FILE src/components/article-wizard/ArticleWizard.tsx ---
 
 --- START OF FILE src/components/article-wizard/Step1_Idea.tsx ---
-// src/components/article-wizard/Step1_Idea.tsx
 'use client';
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -703,37 +817,26 @@ interface Step1Props {
 
 export default function Step1_Idea({ formData, updateFormData, handleNextStep }: Step1Props) {
   const [topic, setTopic] = useState(formData.topic || '');
-
   const handleNext = () => {
     if (topic.trim()) {
       updateFormData({ topic });
       handleNextStep();
     }
   };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">Let's start with a topic</CardTitle>
-        <CardDescription>
-          What is the main subject you want to write an article about?
-        </CardDescription>
+        <CardDescription>What is the main subject you want to write an article about?</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="topic">Article Topic</Label>
-            <Input
-              id="topic"
-              placeholder="e.g., The Future of Renewable Energy"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              autoFocus
-            />
+            <Input id="topic" placeholder="e.g., The Future of Renewable Energy" value={topic} onChange={(e) => setTopic(e.target.value)} autoFocus />
           </div>
           <Button onClick={handleNext} disabled={!topic.trim()} className="w-full">
-            Generate Titles
-            <ArrowRight className="ml-2 h-4 w-4" />
+            Generate Titles <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </CardContent>
@@ -744,9 +847,7 @@ export default function Step1_Idea({ formData, updateFormData, handleNextStep }:
 --- END OF FILE src/components/article-wizard/Step1_Idea.tsx ---
 
 --- START OF FILE src/components/article-wizard/Step2_Refine.tsx ---
-// src/components/article-wizard/Step2_Refine.tsx
 'use client';
-
 import { WizardFormData } from '@/types/wizard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -761,91 +862,38 @@ interface Step2Props {
   handlePreviousStep: () => void;
 }
 
-// Mock data for demonstration purposes
-const mockTitles = [
-  "The Unseen Revolution: How AI is Reshaping Modern Industries",
-  "Beyond the Hype: A Realistic Look at AI's Impact on Our Future",
-  "AI in 2025: Trends, Challenges, and Opportunities Ahead",
-  "From Automation to Augmentation: The New Era of Artificial Intelligence",
-  "Decoding the AI Black Box: Understanding How Modern AI Works"
-];
+const mockTitles = ["The Unseen Revolution: How AI is Reshaping Modern Industries", "Beyond the Hype: A Realistic Look at AI's Impact on Our Future", "AI in 2025: Trends, Challenges, and Opportunities Ahead"];
 
 export default function Step2_Refine({ formData, updateFormData, handleNextStep, handlePreviousStep }: Step2Props) {
   const [selectedTitle, setSelectedTitle] = useState(formData.selectedTitle || '');
-
   const handleSelectTitle = (title: string) => {
     setSelectedTitle(title);
-    // Automatically proceed to the next step upon selection for a fluid experience
     setTimeout(() => {
       updateFormData({ selectedTitle: title });
       handleNextStep();
-    }, 500); // A brief delay to show the selection animation
+    }, 500);
   };
-
-  // Animation variants for Framer Motion
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-    },
-  };
+  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } } };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">Choose the Perfect Title</CardTitle>
-        <CardDescription>
-          We've generated a few title options for your topic: "{formData.topic}". Select the one you like best.
-        </CardDescription>
+        <CardDescription>We've generated a few title options for your topic: "{formData.topic}". Select the one you like best.</CardDescription>
       </CardHeader>
       <CardContent>
-        <motion.div
-          className="space-y-3"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
+        <motion.div className="space-y-3" variants={containerVariants} initial="hidden" animate="visible">
           {mockTitles.map((title, index) => (
-            <motion.button
-              key={index}
-              variants={itemVariants}
-              onClick={() => handleSelectTitle(title)}
-              className="w-full text-left p-4 rounded-lg border transition-all duration-300 ease-in-out"
-              style={{
-                // inline styles for dynamic properties
-                borderColor: selectedTitle === title ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                backgroundColor: selectedTitle === title ? 'hsl(var(--primary) / 0.1)' : 'transparent',
-              }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
+            <motion.button key={index} variants={itemVariants} onClick={() => handleSelectTitle(title)} className="w-full text-left p-4 rounded-lg border transition-all duration-300 ease-in-out" style={{ borderColor: selectedTitle === title ? 'hsl(var(--primary))' : 'hsl(var(--border))', backgroundColor: selectedTitle === title ? 'hsl(var(--primary) / 0.1)' : 'transparent' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <div className="flex items-center justify-between">
                 <span className="font-medium">{title}</span>
-                {selectedTitle === title && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                  </motion.div>
-                )}
+                {selectedTitle === title && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckCircle className="h-5 w-5 text-primary" /></motion.div>)}
               </div>
             </motion.button>
           ))}
         </motion.div>
-        <div className="mt-6 flex justify-start">
-          <Button variant="outline" onClick={handlePreviousStep}>
-            Back to Topic
-          </Button>
-        </div>
+        <div className="mt-6 flex justify-start"><Button variant="outline" onClick={handlePreviousStep}>Back to Topic</Button></div>
       </CardContent>
     </Card>
   );
@@ -854,9 +902,7 @@ export default function Step2_Refine({ formData, updateFormData, handleNextStep,
 --- END OF FILE src/components/article-wizard/Step2_Refine.tsx ---
 
 --- START OF FILE src/components/article-wizard/Step3_Configure.tsx ---
-// src/components/article-wizard/Step3_Configure.tsx
 'use client';
-
 import { WizardFormData } from '@/types/wizard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -873,79 +919,34 @@ interface Step3Props {
 
 export default function Step3_Configure({ formData, updateFormData, handleNextStep, handlePreviousStep }: Step3Props) {
   const { articleConfig } = formData;
-
-  const setConfig = (key: keyof typeof articleConfig, value: string) => {
-    updateFormData({
-      articleConfig: {
-        ...articleConfig,
-        [key]: value,
-      },
-    });
-  };
+  const setConfig = (key: keyof typeof articleConfig, value: string) => { updateFormData({ articleConfig: { ...articleConfig, [key]: value } }) };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">Fine-tune your article</CardTitle>
-        <CardDescription>
-          Set the desired length and tone for the generated content.
-        </CardDescription>
+        <CardDescription>Set the desired length and tone for the generated content.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Article Length */}
         <div className="space-y-3">
           <Label>Article Length</Label>
-          <RadioGroup
-            value={articleConfig.length}
-            onValueChange={(value) => setConfig('length', value)}
-            className="flex flex-col sm:flex-row gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="short" id="short" />
-              <Label htmlFor="short" className="font-normal">Short (~500 words)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="medium" id="medium" />
-              <Label htmlFor="medium" className="font-normal">Medium (~1000 words)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="long" id="long" />
-              <Label htmlFor="long" className="font-normal">Long (~1500+ words)</Label>
-            </div>
+          <RadioGroup value={articleConfig.length} onValueChange={(value) => setConfig('length', value)} className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center space-x-2"><RadioGroupItem value="short" id="short" /><Label htmlFor="short" className="font-normal">Short</Label></div>
+            <div className="flex items-center space-x-2"><RadioGroupItem value="medium" id="medium" /><Label htmlFor="medium" className="font-normal">Medium</Label></div>
+            <div className="flex items-center space-x-2"><RadioGroupItem value="long" id="long" /><Label htmlFor="long" className="font-normal">Long</Label></div>
           </RadioGroup>
         </div>
-
-        {/* Article Tone */}
         <div className="space-y-3">
           <Label>Tone of Voice</Label>
-          <RadioGroup
-            value={articleConfig.tone}
-            onValueChange={(value) => setConfig('tone', value)}
-            className="flex flex-col sm:flex-row gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="professional" id="professional" />
-              <Label htmlFor="professional" className="font-normal">Professional</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="casual" id="casual" />
-              <Label htmlFor="casual" className="font-normal">Casual</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="formal" id="formal" />
-              <Label htmlFor="formal" className="font-normal">Formal</Label>
-            </div>
+          <RadioGroup value={articleConfig.tone} onValueChange={(value) => setConfig('tone', value)} className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center space-x-2"><RadioGroupItem value="professional" id="professional" /><Label htmlFor="professional" className="font-normal">Professional</Label></div>
+            <div className="flex items-center space-x-2"><RadioGroupItem value="casual" id="casual" /><Label htmlFor="casual" className="font-normal">Casual</Label></div>
+            <div className="flex items-center space-x-2"><RadioGroupItem value="formal" id="formal" /><Label htmlFor="formal" className="font-normal">Formal</Label></div>
           </RadioGroup>
         </div>
-
         <div className="flex justify-between mt-8">
-          <Button variant="outline" onClick={handlePreviousStep}>
-            Back to Title
-          </Button>
-          <Button onClick={handleNextStep}>
-            Generate Article
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          <Button variant="outline" onClick={handlePreviousStep}>Back to Title</Button>
+          <Button onClick={handleNextStep}>Generate Article <ArrowRight className="ml-2 h-4 w-4" /></Button>
         </div>
       </CardContent>
     </Card>
@@ -955,85 +956,179 @@ export default function Step3_Configure({ formData, updateFormData, handleNextSt
 --- END OF FILE src/components/article-wizard/Step3_Configure.tsx ---
 
 --- START OF FILE src/components/article-wizard/Step4_Generate.tsx ---
-// src/components/article-wizard/Step4_Generate.tsx
 'use client';
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, FileCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Step4Props {
-  handlePreviousStep: () => void;
+  handleFinish: () => void;
 }
 
-const mockArticle = `
-In the ever-evolving landscape of technology, Artificial Intelligence (AI) stands as a monumental pillar of innovation. Once a concept confined to science fiction, AI has now permeated nearly every facet of our daily lives, reshaping industries from healthcare to finance...
-
-(This is a mock article generated for demonstration purposes. The actual content will be created by the AI in the next development phase.)
-`;
-
-export default function Step4_Generate({ handlePreviousStep }: Step4Props) {
+export default function Step4_Generate({ handleFinish }: Step4Props) {
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
-    // Simulate AI generation time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2500); // 2.5 seconds delay
-
+    const timer = setTimeout(() => setIsLoading(false), 2500);
     return () => clearTimeout(timer);
   }, []);
-
-  const handleStartOver = () => {
-    // In a real app, this would likely reset the wizard state.
-    // For the prototype, we can just reload the page.
-    window.location.reload();
-  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Your Article is Ready!</CardTitle>
-        <CardDescription>
-          Here is the generated content. You can now review, edit, and export it.
-        </CardDescription>
+        <CardTitle className="text-2xl">Generating your article</CardTitle>
+        <CardDescription>The AI is working its magic. Please wait a moment.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center min-h-[200px] space-y-3"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center min-h-[200px] space-y-3">
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
-            <p className="font-semibold">AI is writing your article...</p>
-            <p className="text-sm text-muted-foreground">This may take a moment.</p>
+            <p className="font-semibold">Writing in progress...</p>
           </motion.div>
         ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="prose prose-invert max-w-none p-4 border rounded-md bg-secondary/30 min-h-[200px]">
-              <p>{mockArticle.trim()}</p>
-            </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center min-h-[200px] space-y-4">
+            <FileCheck className="h-12 w-12 text-green-500" />
+            <h3 className="text-xl font-semibold">Your new document is ready!</h3>
+            <p className="text-muted-foreground text-center">Click the button below to open it in the editor.</p>
+            <Button onClick={handleFinish} className="mt-4">
+              Open Document
+            </Button>
           </motion.div>
         )}
-
-        <div className="flex justify-between mt-8">
-          <Button variant="outline" onClick={handlePreviousStep} disabled={isLoading}>
-            Back to Config
-          </Button>
-          <Button onClick={handleStartOver} variant="destructive">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Start Over
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
 }
 
 --- END OF FILE src/components/article-wizard/Step4_Generate.tsx ---
+
+--- START OF FILE src/components/document-card.tsx ---
+// src/components/document-card.tsx
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
+import Link from "next/link"; // Import Link
+
+interface DocumentCardProps {
+  id: number; // Add id to link to the correct page
+  title: string;
+  snippet: string;
+  lastEdited: string;
+}
+
+export default function DocumentCard({ id, title, snippet, lastEdited }: DocumentCardProps) {
+  return (
+    <Link href={`/docs/${id}`}>
+      <Card className="flex flex-col h-full hover:border-primary/50 transition-colors duration-200 cursor-pointer">
+        <CardHeader>
+          <CardTitle className="text-lg">{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <p className="text-sm text-muted-foreground line-clamp-3">
+            {snippet}
+          </p>
+        </CardContent>
+        <CardFooter>
+          <p className="text-xs text-muted-foreground">Edited {lastEdited}</p>
+        </CardFooter>
+      </Card>
+    </Link>
+  );
+}
+
+--- END OF FILE src/components/document-card.tsx ---
+
+--- START OF FILE src/components/editor-styles.css ---
+/* src/components/editor-styles.css */
+
+.ProseMirror {
+  min-height: 400px;
+}
+
+.ProseMirror p {
+  margin-bottom: 1em;
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+--- END OF FILE src/components/editor-styles.css ---
+
+--- START OF FILE src/components/editor.tsx ---
+// src/components/editor.tsx
+'use client';
+
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import './editor-styles.css'; // We will create this file next
+
+interface EditorProps {
+  content: string;
+}
+
+export default function Editor({ content }: EditorProps) {
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: content,
+    editable: true,
+    editorProps: {
+      attributes: {
+        class: 'prose dark:prose-invert focus:outline-none max-w-full',
+      },
+    },
+  });
+
+  return (
+    <div className="p-8 rounded-lg border bg-card text-card-foreground shadow-sm min-h-[500px]">
+      <EditorContent editor={editor} />
+    </div>
+  );
+}
+
+--- END OF FILE src/components/editor.tsx ---
+
+--- START OF FILE src/components/sidebar.tsx ---
+// src/components/sidebar.tsx
+'use client';
+
+import { FileText, LifeBuoy, Settings } from 'lucide-react';
+import { Button } from './ui/button';
+import { ThemeToggle } from './theme-toggle';
+
+export default function Sidebar() {
+  // In the future, we'll use Next's usePathname to highlight the active link
+  const activeClass = 'bg-primary/10 text-primary border-primary/50';
+
+  return (
+    <aside className="flex h-full flex-col p-4 border-r">
+      <div className="flex-grow space-y-2">
+        <h1 className="text-xl font-bold px-3 mb-4">Article Master</h1>
+        <Button variant="ghost" className={`w-full justify-start ${activeClass}`}>
+          <FileText className="mr-2 h-4 w-4" />
+          Docs
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <Settings className="mr-2 h-4 w-4" />
+          Account
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <LifeBuoy className="mr-2 h-4 w-4" />
+          Support
+        </Button>
+      </div>
+      <div className="flex items-center justify-center p-2">
+        <ThemeToggle />
+      </div>
+    </aside>
+  );
+}
+
+--- END OF FILE src/components/sidebar.tsx ---
 
 --- START OF FILE src/components/theme-provider.tsx ---
 // src/components/theme-provider.tsx
@@ -1338,6 +1433,133 @@ export { RadioGroup, RadioGroupItem }
 
 --- END OF FILE src/components/ui/radio-group.tsx ---
 
+--- START OF FILE src/components/ui/resizable.tsx ---
+"use client"
+
+import * as React from "react"
+import { GripVerticalIcon } from "lucide-react"
+import * as ResizablePrimitive from "react-resizable-panels"
+
+import { cn } from "@/lib/utils"
+
+function ResizablePanelGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>) {
+  return (
+    <ResizablePrimitive.PanelGroup
+      data-slot="resizable-panel-group"
+      className={cn(
+        "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function ResizablePanel({
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.Panel>) {
+  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />
+}
+
+function ResizableHandle({
+  withHandle,
+  className,
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
+  withHandle?: boolean
+}) {
+  return (
+    <ResizablePrimitive.PanelResizeHandle
+      data-slot="resizable-handle"
+      className={cn(
+        "bg-border focus-visible:ring-ring relative flex w-px items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 [&[data-panel-group-direction=vertical]>div]:rotate-90",
+        className
+      )}
+      {...props}
+    >
+      {withHandle && (
+        <div className="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
+          <GripVerticalIcon className="size-2.5" />
+        </div>
+      )}
+    </ResizablePrimitive.PanelResizeHandle>
+  )
+}
+
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
+
+--- END OF FILE src/components/ui/resizable.tsx ---
+
+--- START OF FILE src/components/ui/separator.tsx ---
+"use client"
+
+import * as React from "react"
+import * as SeparatorPrimitive from "@radix-ui/react-separator"
+
+import { cn } from "@/lib/utils"
+
+function Separator({
+  className,
+  orientation = "horizontal",
+  decorative = true,
+  ...props
+}: React.ComponentProps<typeof SeparatorPrimitive.Root>) {
+  return (
+    <SeparatorPrimitive.Root
+      data-slot="separator"
+      decorative={decorative}
+      orientation={orientation}
+      className={cn(
+        "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Separator }
+
+--- END OF FILE src/components/ui/separator.tsx ---
+
+--- START OF FILE src/components/ui/switch.tsx ---
+"use client"
+
+import * as React from "react"
+import * as SwitchPrimitive from "@radix-ui/react-switch"
+
+import { cn } from "@/lib/utils"
+
+function Switch({
+  className,
+  ...props
+}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
+  return (
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      className={cn(
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
+        className={cn(
+          "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        )}
+      />
+    </SwitchPrimitive.Root>
+  )
+}
+
+export { Switch }
+
+--- END OF FILE src/components/ui/switch.tsx ---
+
 --- START OF FILE src/lib/utils.ts ---
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -1364,7 +1586,9 @@ export interface WizardFormData {
 --- END OF FILE src/types/wizard.ts ---
 
 --- START OF FILE tailwind.config.ts ---
-import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss";
+import tailwindcss_animate from "tailwindcss-animate";
+import tailwindcss_typography from "@tailwindcss/typography";
 
 const config = {
   darkMode: ["class"],
@@ -1440,7 +1664,7 @@ const config = {
       },
     },
   },
-
+  plugins: [tailwindcss_animate, tailwindcss_typography],
 } satisfies Config
 
 export default config
