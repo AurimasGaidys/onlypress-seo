@@ -416,6 +416,7 @@ export default nextConfig;
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-radio-group": "^1.3.8",
     "@radix-ui/react-separator": "^1.1.7",
@@ -426,19 +427,25 @@ export default nextConfig;
     "@tiptap/starter-kit": "^3.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.4.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
+    "marked": "^16.4.1",
     "next": "15.5.6",
     "next-themes": "^0.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-resizable-panels": "^3.0.6",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "use-debounce": "^10.0.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/marked": "^5.0.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -464,49 +471,275 @@ export default config;
 
 --- END OF FILE postcss.config.mjs ---
 
---- START OF FILE src/app/docs/[documentId]/page.tsx ---
-// src/app/docs/[documentId]/page.tsx
+--- START OF FILE src/app/(app)/docs/[documentId]/page.tsx ---
+// src/app/(authed)/docs/[documentId]/page.tsx
 'use client';
 
 import Editor from '@/components/editor';
-import AIAssistantSidebar from '@/components/ai-assistant-sidebar'; // Import the new sidebar
-
-// Mock database lookup
-const mockDocumentContent: { [key: string]: string } = {
-  '1': '<h1>The Future of AI</h1><p>Exploring the rapid advancements in artificial intelligence and its potential impact on society...</p>',
-  '2': '<h1>Marketing Strategy Q3</h1><p>A comprehensive plan for the third quarter, focusing on digital outreach and brand awareness...</p>',
-  '3': '<h1>Untitled doc</h1><p>We have a mobile application created using React...</p>',
-  // Add more mock content for other IDs as needed
-};
-
-// A simple function to get content, which handles the dynamic new doc ID
-const getMockContent = (id: string) => {
-  if (mockDocumentContent[id]) {
-    return mockDocumentContent[id];
-  }
-  // If the ID is not in our static list, assume it's a new document
-  return `<h1>New Document: ${id}</h1><p>This is a newly generated document. Start editing!</p>`;
-}
+import AIAssistantSidebar from '@/components/ai-assistant-sidebar';
+import { useDocument } from '@/hooks/useDocument';
+import { FileText, Loader2 } from 'lucide-react';
 
 export default function DocumentPage({ params }: { params: { documentId: string } }) {
-  const content = getMockContent(params.documentId);
+  const { document, loading } = useDocument(params.documentId);
+
+  if (loading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!document) {
+    return (
+      <div className="text-center p-8">
+        <h1 className="text-2xl font-bold">Document Not Found</h1>
+        <p className="text-muted-foreground">This document may not exist or you may not have permission to view it.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex gap-8 items-start">
-      {/* Main Editor Area */}
-      <div className="flex-grow">
-        <Editor content={content} />
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+          <FileText className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl sm:text-3xl font-bold truncate" title={document.title}>
+              {document.title}
+          </h1>
       </div>
-
-      {/* AI Assistant Sidebar */}
-      <div className="w-full max-w-xs sticky top-8">
-        <AIAssistantSidebar />
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="flex-grow w-full">
+          <Editor document={document} /> {/* Pass the full document object */}
+        </div>
+        <div className="w-full lg:w-full lg:max-w-xs lg:sticky top-8">
+          <AIAssistantSidebar />
+        </div>
       </div>
     </div>
   );
 }
 
---- END OF FILE src/app/docs/[documentId]/page.tsx ---
+--- END OF FILE src/app/(app)/docs/[documentId]/page.tsx ---
+
+--- START OF FILE src/app/(app)/layout.tsx ---
+// src/app/(app)/layout.tsx
+'use client';
+
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import Sidebar from '@/components/sidebar';
+import Header from '@/components/header'; // Imported new Header component
+import withAuth from '@/components/auth/withAuth';
+import { useState } from 'react';
+
+function AppLayout({ children }: { children: React.ReactNode }) {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  return (
+    <>
+      {/* Desktop Layout: Uses ResizablePanelGroup, hidden on mobile */}
+      <div className="hidden md:flex min-h-screen w-full">
+        <ResizablePanelGroup direction="horizontal">
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+            <Sidebar />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={80}>
+            <main className="h-full overflow-y-auto p-8">{children}</main>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+
+      {/* Mobile Layout: Uses Header and a slide-out sidebar, hidden on desktop */}
+      <div className="md:hidden flex h-screen flex-col">
+        <Header onMenuClick={() => setMobileSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4">{children}</main>
+        <Sidebar isMobile={true} isOpen={mobileSidebarOpen} setIsOpen={setMobileSidebarOpen} />
+      </div>
+    </>
+  );
+}
+
+export default withAuth(AppLayout);
+
+--- END OF FILE src/app/(app)/layout.tsx ---
+
+--- START OF FILE src/app/(app)/new/page.tsx ---
+// src/app/new/page.tsx
+import ArticleWizard from '@/components/article-wizard/ArticleWizard';
+
+export default function NewDocumentPage() {
+  return (
+    <div>
+      {/* The wizard itself provides the main UI, so we don't need much else here */}
+      <ArticleWizard />
+    </div>
+  );
+}
+
+--- END OF FILE src/app/(app)/new/page.tsx ---
+
+--- START OF FILE src/app/(app)/page.tsx ---
+// src/app/(authed)/page.tsx
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import DocumentCard from '@/components/document-card';
+import Link from "next/link";
+import { Loader2, PlusCircle, Search } from "lucide-react";
+import { useUserDocuments } from '@/hooks/useUserDocuments'; // Import the hook
+import { formatDistanceToNow } from 'date-fns'; // For displaying human-readable dates
+
+export default function DashboardPage() {
+  const { documents, loading } = useUserDocuments();
+
+  return (
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-3xl font-bold">Docs</h1>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+          <div className="relative w-full sm:w-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search docs..." className="pl-9 w-full md:w-64" />
+          </div>
+          <Link href="/new" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New doc
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Documents Grid */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : documents.length === 0 ? (
+        <div className="text-center text-muted-foreground h-64 flex flex-col justify-center items-center">
+            <p>You don't have any documents yet.</p>
+            <Link href="/new" className="mt-4"><Button>Create your first document</Button></Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {documents.map((doc) => (
+            <DocumentCard
+              key={doc.id}
+              id={doc.id} // The document ID is now a string
+              title={doc.title}
+              snippet={doc.snippet}
+              // Format the Firestore Timestamp into a readable string
+              lastEdited={formatDistanceToNow(doc.lastEdited.toDate(), { addSuffix: true })}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+--- END OF FILE src/app/(app)/page.tsx ---
+
+--- START OF FILE src/app/api/generate-article/route.ts ---
+// src/app/api/generate-article/route.ts
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { topic, title, config } = await req.json();
+
+    if (!topic || !title || !config) {
+      return NextResponse.json({ error: "Topic, title, and config are required" }, { status: 400 });
+    }
+
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "API key is not configured" }, { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Use environment variable for model, with a fallback
+    const modelName = process.env.ARTICLE_GENERATION_MODEL || "gemini-1.5-flash";
+    const model = genAI.getGenerativeModel({ model: modelName });
+
+    const wordCount = {
+      short: "~500 words",
+      medium: "~1000 words",
+      long: "~1500+ words",
+    };
+
+    const prompt = `
+      You are an expert content writer. Your task is to write a high-quality, SEO-optimized article.
+      The article should be well-structured, informative, and engaging.
+      Use Markdown for formatting (e.g., # for H1, ## for H2, * for bold, etc.).
+
+      Topic: "${topic}"
+      Chosen Title: "${title}"
+      Desired Length: ${wordCount[config.length as keyof typeof wordCount]}
+      Tone of Voice: ${config.tone}
+
+      Please write the full article based on these parameters. Start with the title as an H1 heading.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+
+    return NextResponse.json({ article: responseText });
+
+  } catch (error) {
+    console.error("AI article generation error:", error);
+    return NextResponse.json({ error: "Failed to generate the article from AI." }, { status: 500 });
+  }
+}
+
+--- END OF FILE src/app/api/generate-article/route.ts ---
+
+--- START OF FILE src/app/api/generate-titles/route.ts ---
+// src/app/api/generate-titles/route.ts
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextRequest, NextResponse } from "next/server";
+
+// IMPORTANT: Ensure you have GOOGLE_API_KEY in your .env.local file
+
+export async function POST(req: NextRequest) {
+  try {
+    const { topic } = await req.json();
+
+    if (!topic) {
+      return NextResponse.json({ error: "Topic is required" }, { status: 400 });
+    }
+
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "API key is not configured" }, { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Use environment variable for model, with a fallback
+    const modelName = process.env.ARTICLE_GENERATION_MODEL || "gemini-1.5-flash";
+    const model = genAI.getGenerativeModel({ model: modelName });
+
+    const prompt = `Generate 5 creative, engaging, and SEO-friendly article titles for the topic: "${topic}". Return them as a valid JSON object with a single key "titles" which is an array of strings. Example: {"titles": ["Title 1", "Title 2"]}`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+
+    const jsonString = responseText.replace(/```json|```/g, '').trim();
+    const parsedResponse = JSON.parse(jsonString);
+
+    return NextResponse.json(parsedResponse);
+
+  } catch (error) {
+    console.error("AI generation error:", error);
+    return NextResponse.json({ error: "Failed to generate titles from AI. Please check the server logs." }, { status: 500 });
+  }
+}
+
+--- END OF FILE src/app/api/generate-titles/route.ts ---
 
 --- START OF FILE src/app/globals.css ---
 @tailwind base;
@@ -580,44 +813,25 @@ import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import Sidebar from '@/components/sidebar';
+import { AuthProvider } from '@/context/AuthContext';
+import { Toaster } from '@/components/ui/sonner';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'Article Master AI',
   description: 'AI-powered document platform',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <ResizablePanelGroup direction="horizontal" className="min-h-screen w-full">
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
-              <Sidebar />
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={80}>
-              <main className="h-full overflow-y-auto p-8">
-                {children}
-              </main>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            {children}
+            <Toaster richColors />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
@@ -626,76 +840,133 @@ export default function RootLayout({
 
 --- END OF FILE src/app/layout.tsx ---
 
---- START OF FILE src/app/new/page.tsx ---
-// src/app/new/page.tsx
-import ArticleWizard from '@/components/article-wizard/ArticleWizard';
+--- START OF FILE src/app/login/page.tsx ---
+// src/app/login/page.tsx
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-export default function NewDocumentPage() {
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/'); // Redirect to dashboard on successful login
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown login error occurred.');
+    }
+  };
+
   return (
-    <div>
-      {/* The wizard itself provides the main UI, so we don't need much else here */}
-      <ArticleWizard />
-    </div>
-  );
-}
-
---- END OF FILE src/app/new/page.tsx ---
-
---- START OF FILE src/app/page.tsx ---
-// src/app/page.tsx
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import DocumentCard from "@/components/document-card";
-import Link from "next/link"; // Add this import
-import { PlusCircle, Search } from "lucide-react";
-
-// Mock data to simulate user's documents
-const mockDocuments = [
-  { id: 1, title: "The Future of AI", snippet: "Exploring the rapid advancements in artificial intelligence and its potential impact on society...", lastEdited: "2 hours ago" },
-  { id: 2, title: "Marketing Strategy Q3", snippet: "A comprehensive plan for the third quarter, focusing on digital outreach and brand awareness...", lastEdited: "1 day ago" },
-  { id: 3, title: "Untitled doc", snippet: "We have a mobile application created using React...", lastEdited: "3 days ago" },
-  { id: 4, title: "Project Phoenix Notes", snippet: "Initial brainstorming session notes, key takeaways, and action items for the team...", lastEdited: "5 days ago" },
-  { id: 5, title: "Blog Post: 10 Tips for Remote Work", snippet: "Practical advice for staying productive and maintaining a healthy work-life balance while working from home...", lastEdited: "1 week ago" },
-  { id: 6, title: "Annual Report Draft", snippet: "First draft of the 2024 annual report, pending review from the finance department...", lastEdited: "2 weeks ago" },
-];
-
-export default function DashboardPage() {
-  return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Docs</h1>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search docs..." className="pl-9 w-64" />
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>Enter your email below to login to your account.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full">Login</Button>
+          </form>
+          <div className="mt-4 text-center text-sm">
+            Don't have an account?{' '}
+            <Link href="/signup" className="underline">Sign up</Link>
           </div>
-          <Link href="/new"> {/* Wrap the Button with Link */}
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New doc
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Documents Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {mockDocuments.map((doc) => (
-          <DocumentCard
-            key={doc.id}
-            id={doc.id} // <-- Pass the ID here
-            title={doc.title}
-            snippet={doc.snippet}
-            lastEdited={doc.lastEdited}
-          />
-        ))}
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </main>
   );
 }
 
---- END OF FILE src/app/page.tsx ---
+--- END OF FILE src/app/login/page.tsx ---
+
+--- START OF FILE src/app/signup/page.tsx ---
+// src/app/signup/page.tsx
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+export default function SignupPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (password.length < 6) {
+        setError("Password should be at least 6 characters.");
+        return;
+    }
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      router.push('/'); // Redirect to dashboard on successful signup
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown signup error occurred.');
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Sign Up</CardTitle>
+          <CardDescription>Enter your information to create an account.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full">Create an account</Button>
+          </form>
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{' '}
+            <Link href="/login" className="underline">Login</Link>
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+
+--- END OF FILE src/app/signup/page.tsx ---
 
 --- START OF FILE src/components/ai-assistant-sidebar.tsx ---
 // src/components/ai-assistant-sidebar.tsx
@@ -754,43 +1025,100 @@ export default function AIAssistantSidebar() {
 --- END OF FILE src/components/ai-assistant-sidebar.tsx ---
 
 --- START OF FILE src/components/article-wizard/ArticleWizard.tsx ---
+// src/components/article-wizard/ArticleWizard.tsx
 'use client';
+
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 import { WizardFormData } from '@/types/wizard';
 import Step1_Idea from './Step1_Idea';
 import Step2_Refine from './Step2_Refine';
 import Step3_Configure from './Step3_Configure';
 import Step4_Generate from './Step4_Generate';
+import { toast } from 'sonner';
+import { marked } from 'marked'; // We will install this to convert Markdown to HTML
 
 const TOTAL_STEPS = 4;
 
 export default function ArticleWizard() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<WizardFormData>({ topic: '', selectedTitle: '', keywords: [], articleConfig: { length: 'medium', tone: 'professional' }, generatedArticle: '' });
-  
-  const handleNextStep = () => { if (currentStep < TOTAL_STEPS) setCurrentStep((prev) => prev + 1) };
-  const handlePreviousStep = () => { setCurrentStep((prev) => Math.max(1, prev)) };
-  const updateFormData = (data: Partial<WizardFormData>) => { setFormData((prev) => ({ ...prev, ...data })) };
+  const [formData, setFormData] = useState<WizardFormData>({
+    topic: '',
+    selectedTitle: '',
+    keywords: [],
+    articleConfig: { length: 'medium', tone: 'professional' },
+    generatedArticle: '',
+  });
 
-  const handleFinish = () => {
-    // In a real app, we would save the formData to the database here
-    // and get back a new document ID.
-    // For this prototype, we'll simulate it and redirect.
-    const newDocId = Date.now(); // Simulate a unique ID
-    console.log('Wizard finished. Final data:', formData);
-    console.log(`Redirecting to /docs/${newDocId}`);
-    router.push(`/docs/${newDocId}`);
+  const handleNextStep = () => { if (currentStep < TOTAL_STEPS) setCurrentStep((prev) => prev + 1); };
+  const handlePreviousStep = () => { setCurrentStep((prev) => Math.max(1, prev)); };
+  const updateFormData = (data: Partial<WizardFormData>) => { setFormData((prev) => ({ ...prev, ...data })); };
+
+  const handleFinish = async () => {
+    if (!user) {
+      toast.error("Authentication Error", { description: "You must be logged in to create a document." });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Step 1: Generate the article content from our API
+      const articleResponse = await fetch('/api/generate-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: formData.topic,
+          title: formData.selectedTitle,
+          config: formData.articleConfig,
+        }),
+      });
+
+      if (!articleResponse.ok) {
+        const errorData = await articleResponse.json();
+        throw new Error(errorData.error || "Failed to generate article content.");
+      }
+
+      const { article: markdownContent } = await articleResponse.json();
+
+      // Step 2: Convert Markdown to HTML for the editor
+      const htmlContent = marked(markdownContent);
+      const snippet = markdownContent.substring(0, 150).replace(/[^a-zA-Z0-9 ]/g, " "); // Create a clean snippet
+
+      // Step 3: Save the final document to Firestore
+      const docRef = await addDoc(collection(db, 'documents'), {
+        userId: user.uid,
+        title: formData.selectedTitle || 'Untitled Document',
+        content: htmlContent, // Save HTML content
+        snippet: snippet,
+        lastEdited: serverTimestamp(),
+      });
+
+      toast.success("Article generated and saved successfully!");
+      router.push(`/docs/${docRef.id}`);
+
+    } catch (error) {
+      console.error("Error in finish process:", error);
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+      toast.error("Process Failed", { description: message });
+      setIsSubmitting(false);
+    }
   };
 
+  // ... (renderCurrentStep function remains the same)
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 1: return <Step1_Idea formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} />;
-      case 2: return <Step2_Refine formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} handlePreviousStep={handlePreviousStep} />;
-      case 3: return <Step3_Configure formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} handlePreviousStep={handlePreviousStep} />;
-      case 4: return <Step4_Generate handleFinish={handleFinish} />;
-      default: return <Step1_Idea formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} />;
+        case 1: return <Step1_Idea formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} />;
+        case 2: return <Step2_Refine formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} handlePreviousStep={handlePreviousStep} />;
+        case 3: return <Step3_Configure formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} handlePreviousStep={handlePreviousStep} />;
+        case 4: return <Step4_Generate handleFinish={handleFinish} isSubmitting={isSubmitting} />;
+        default: return <Step1_Idea formData={formData} updateFormData={updateFormData} handleNextStep={handleNextStep} />;
     }
   };
 
@@ -847,13 +1175,16 @@ export default function Step1_Idea({ formData, updateFormData, handleNextStep }:
 --- END OF FILE src/components/article-wizard/Step1_Idea.tsx ---
 
 --- START OF FILE src/components/article-wizard/Step2_Refine.tsx ---
+// src/components/article-wizard/Step2_Refine.tsx
 'use client';
+
 import { WizardFormData } from '@/types/wizard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
-import { useState } from 'react';
+import { CheckCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface Step2Props {
   formData: WizardFormData;
@@ -862,38 +1193,88 @@ interface Step2Props {
   handlePreviousStep: () => void;
 }
 
-const mockTitles = ["The Unseen Revolution: How AI is Reshaping Modern Industries", "Beyond the Hype: A Realistic Look at AI's Impact on Our Future", "AI in 2025: Trends, Challenges, and Opportunities Ahead"];
-
 export default function Step2_Refine({ formData, updateFormData, handleNextStep, handlePreviousStep }: Step2Props) {
+  const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTitle, setSelectedTitle] = useState(formData.selectedTitle || '');
+
+  useEffect(() => {
+    const fetchTitles = async () => {
+      if (!formData.topic) {
+        toast.error("No topic provided.");
+        handlePreviousStep();
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/generate-titles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic: formData.topic }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch titles');
+        }
+        const data = await response.json();
+        if (!data.titles || data.titles.length === 0) {
+          throw new Error("AI returned no titles. Please try a different topic.");
+        }
+        setGeneratedTitles(data.titles);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+        toast.error("Title Generation Failed", { description: message });
+        handlePreviousStep();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTitles();
+  }, [formData.topic, handlePreviousStep]);
+
   const handleSelectTitle = (title: string) => {
     setSelectedTitle(title);
     setTimeout(() => {
       updateFormData({ selectedTitle: title });
       handleNextStep();
-    }, 500);
+    }, 300);
   };
+
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } } };
+  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100 } } };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">Choose the Perfect Title</CardTitle>
-        <CardDescription>We've generated a few title options for your topic: "{formData.topic}". Select the one you like best.</CardDescription>
+        <CardDescription>
+          We've generated a few title options for your topic: &ldquo;{formData.topic}&rdquo;. Select the one you like best.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <motion.div className="space-y-3" variants={containerVariants} initial="hidden" animate="visible">
-          {mockTitles.map((title, index) => (
-            <motion.button key={index} variants={itemVariants} onClick={() => handleSelectTitle(title)} className="w-full text-left p-4 rounded-lg border transition-all duration-300 ease-in-out" style={{ borderColor: selectedTitle === title ? 'hsl(var(--primary))' : 'hsl(var(--border))', backgroundColor: selectedTitle === title ? 'hsl(var(--primary) / 0.1)' : 'transparent' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{title}</span>
-                {selectedTitle === title && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckCircle className="h-5 w-5 text-primary" /></motion.div>)}
-              </div>
-            </motion.button>
-          ))}
-        </motion.div>
-        <div className="mt-6 flex justify-start"><Button variant="outline" onClick={handlePreviousStep}>Back to Topic</Button></div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center min-h-[200px] space-y-3">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            <p className="font-semibold">Generating titles with AI...</p>
+          </div>
+        ) : (
+          <motion.div className="space-y-3" variants={containerVariants} initial="hidden" animate="visible">
+            {generatedTitles.map((title, index) => (
+              <motion.button key={index} variants={itemVariants} onClick={() => handleSelectTitle(title)} className="w-full text-left p-4 rounded-lg border transition-all duration-300 ease-in-out" style={{ borderColor: selectedTitle === title ? 'hsl(var(--primary))' : 'hsl(var(--border))', backgroundColor: selectedTitle === title ? 'hsl(var(--primary) / 0.1)' : 'transparent' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{title}</span>
+                  {selectedTitle === title && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckCircle className="h-5 w-5 text-primary" /></motion.div>)}
+                </div>
+              </motion.button>
+            ))}
+          </motion.div>
+        )}
+        <div className="mt-6 flex justify-start">
+          <Button variant="outline" onClick={handlePreviousStep} disabled={isLoading}>
+            Back to Topic
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -957,6 +1338,7 @@ export default function Step3_Configure({ formData, updateFormData, handleNextSt
 
 --- START OF FILE src/components/article-wizard/Step4_Generate.tsx ---
 'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -965,33 +1347,41 @@ import { useEffect, useState } from 'react';
 
 interface Step4Props {
   handleFinish: () => void;
+  isSubmitting: boolean;
 }
 
-export default function Step4_Generate({ handleFinish }: Step4Props) {
-  const [isLoading, setIsLoading] = useState(true);
+export default function Step4_Generate({ handleFinish, isSubmitting }: Step4Props) {
+  const [isSimulating, setIsSimulating] = useState(true);
+
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2500);
+    const timer = setTimeout(() => setIsSimulating(false), 1500); // Shorter simulation
     return () => clearTimeout(timer);
   }, []);
+
+  const displayContent = isSimulating || isSubmitting;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Generating your article</CardTitle>
-        <CardDescription>The AI is working its magic. Please wait a moment.</CardDescription>
+        <CardTitle className="text-2xl">Finalizing your document</CardTitle>
+        <CardDescription>
+          {displayContent ? "The AI is working its magic..." : "Your new document is ready!"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {displayContent ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center min-h-[200px] space-y-3">
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
-            <p className="font-semibold">Writing in progress...</p>
+            <p className="font-semibold">
+              {isSubmitting ? "Saving to database..." : "Writing in progress..."}
+            </p>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center min-h-[200px] space-y-4">
             <FileCheck className="h-12 w-12 text-green-500" />
-            <h3 className="text-xl font-semibold">Your new document is ready!</h3>
-            <p className="text-muted-foreground text-center">Click the button below to open it in the editor.</p>
-            <Button onClick={handleFinish} className="mt-4">
+            <h3 className="text-xl font-semibold">Ready to Go!</h3>
+            <p className="text-muted-foreground text-center">Click the button below to open your new document in the editor.</p>
+            <Button onClick={handleFinish} disabled={isSubmitting} className="mt-4">
               Open Document
             </Button>
           </motion.div>
@@ -1009,7 +1399,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from "next/link"; // Import Link
 
 interface DocumentCardProps {
-  id: number; // Add id to link to the correct page
+  id: string; // Add id to link to the correct page
   title: string;
   snippet: string;
   lastEdited: string;
@@ -1065,26 +1455,104 @@ export default function DocumentCard({ id, title, snippet, lastEdited }: Documen
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import './editor-styles.css'; // We will create this file next
+import { useEffect, useCallback, useState } from 'react';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useDebounce } from 'use-debounce';
+import { ArticleDocument } from '@/types/document';
+import { toast } from 'sonner';
+import './editor-styles.css';
+import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
 interface EditorProps {
-  content: string;
+  document: ArticleDocument;
 }
 
-export default function Editor({ content }: EditorProps) {
+type SavingStatus = 'idle' | 'saving' | 'success' | 'error';
+
+// Status Indicator Component
+function StatusIndicator({ status }: { status: SavingStatus }) {
+    if (status === 'idle') return null;
+
+    const statusConfig = {
+        saving: { text: 'Saving...', icon: <Loader2 className="h-4 w-4 animate-spin" />, color: 'text-muted-foreground' },
+        success: { text: 'All changes saved', icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
+        error: { text: 'Could not save', icon: <AlertCircle className="h-4 w-4" />, color: 'text-destructive' },
+    };
+
+    const { text, icon, color } = statusConfig[status];
+
+    return (
+        <div className={`flex items-center gap-2 text-sm ${color}`}>
+            {icon}
+            <span>{text}</span>
+        </div>
+    );
+}
+
+
+export default function Editor({ document }: EditorProps) {
+  const [savingStatus, setSavingStatus] = useState<SavingStatus>('idle');
+
   const editor = useEditor({
     extensions: [StarterKit],
-    content: content,
-    editable: true,
+    content: document.content,
     editorProps: {
-      attributes: {
-        class: 'prose dark:prose-invert focus:outline-none max-w-full',
-      },
+      attributes: { class: 'prose dark:prose-invert focus:outline-none max-w-full' },
     },
   });
 
+  const [debouncedEditorState] = useDebounce(editor?.getHTML(), 1500);
+
+  const saveContent = useCallback(async (html: string) => {
+    if (!html || !document.id || html === document.content) {
+      return;
+    }
+
+    setSavingStatus('saving');
+    const docRef = doc(db, 'documents', document.id);
+
+    try {
+      await updateDoc(docRef, {
+        content: html,
+        snippet: editor?.getText().substring(0, 150).replace(/[^a-zA-Z0-9 ]/g, " ") || '',
+        lastEdited: serverTimestamp(),
+      });
+      setSavingStatus('success');
+    } catch (error) {
+      console.error("Error auto-saving document:", error);
+      toast.error("Failed to save changes.");
+      setSavingStatus('error');
+    }
+  }, [document.id, document.content, editor]);
+
+  useEffect(() => {
+    // This effect triggers when the debounced state changes
+    if (debouncedEditorState && editor?.isEditable) {
+        saveContent(debouncedEditorState);
+    }
+  }, [debouncedEditorState, saveContent, editor?.isEditable]);
+
+  // Ensure editor content is updated if the document prop changes
+  useEffect(() => {
+    if (editor && document.content !== editor.getHTML()) {
+      editor.commands.setContent(document.content, { emitUpdate: false }); // prevent firing update event
+    }
+  }, [document, editor]);
+
+  // Reset status to idle after a successful save to hide the message
+  useEffect(() => {
+    if (savingStatus === 'success') {
+      const timer = setTimeout(() => setSavingStatus('idle'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [savingStatus]);
+
   return (
-    <div className="p-8 rounded-lg border bg-card text-card-foreground shadow-sm min-h-[500px]">
+    <div className="p-4 sm:p-8 rounded-lg border bg-card text-card-foreground shadow-sm min-h-[500px] relative">
+      <div className="absolute top-2 right-4">
+        <StatusIndicator status={savingStatus} />
+      </div>
       <EditorContent editor={editor} />
     </div>
   );
@@ -1092,38 +1560,162 @@ export default function Editor({ content }: EditorProps) {
 
 --- END OF FILE src/components/editor.tsx ---
 
+--- START OF FILE src/components/header.tsx ---
+// src/components/header.tsx
+'use client';
+
+import { Button } from './ui/button';
+import { Menu, PenSquare } from 'lucide-react';
+import Link from 'next/link';
+
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+/**
+ * A responsive header component specifically for mobile view.
+ * It is hidden on medium screens and larger.
+ * Contains a menu toggle button and the application logo/title.
+ */
+export default function Header({ onMenuClick }: HeaderProps) {
+  return (
+    <header className="flex md:hidden items-center justify-between p-4 border-b bg-card sticky top-0 z-30">
+      <Link href="/" className="flex items-center gap-2">
+        <PenSquare className="h-6 w-6 text-primary" />
+        <h1 className="text-lg font-bold">Article Master</h1>
+      </Link>
+      <Button variant="ghost" size="icon" onClick={onMenuClick}>
+        <Menu className="h-6 w-6" />
+        <span className="sr-only">Open menu</span>
+      </Button>
+    </header>
+  );
+}
+
+--- END OF FILE src/components/header.tsx ---
+
 --- START OF FILE src/components/sidebar.tsx ---
 // src/components/sidebar.tsx
 'use client';
 
-import { FileText, LifeBuoy, Settings } from 'lucide-react';
+import { FileText, LifeBuoy, PenSquare, Settings, X, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { toast } from 'sonner';
 
-export default function Sidebar() {
-  // In the future, we'll use Next's usePathname to highlight the active link
-  const activeClass = 'bg-primary/10 text-primary border-primary/50';
+interface SidebarProps {
+  isMobile?: boolean;
+  isOpen?: boolean;
+  setIsOpen?: (isOpen: boolean) => void;
+}
 
-  return (
-    <aside className="flex h-full flex-col p-4 border-r">
+export default function Sidebar({ isMobile, isOpen, setIsOpen }: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const navItems = [
+    { href: '/', label: 'Docs', icon: FileText },
+    // { href: '/account', label: 'Account', icon: Settings }, // Hidden for now
+    // { href: '/support', label: 'Support', icon: LifeBuoy },  // Hidden for now
+  ];
+
+  const handleLogout = async () => {
+    try {
+        await signOut(auth);
+        toast.success("You have been logged out.");
+        router.push('/login');
+    } catch (error) {
+        console.error("Logout error:", error);
+        toast.error("Failed to log out.");
+    }
+  };
+
+  const handleLinkClick = () => {
+    if (setIsOpen) {
+      setIsOpen(false);
+    }
+  };
+
+  const SidebarContent = () => (
+    <>
       <div className="flex-grow space-y-2">
-        <h1 className="text-xl font-bold px-3 mb-4">Article Master</h1>
-        <Button variant="ghost" className={`w-full justify-start ${activeClass}`}>
-          <FileText className="mr-2 h-4 w-4" />
-          Docs
-        </Button>
-        <Button variant="ghost" className="w-full justify-start">
-          <Settings className="mr-2 h-4 w-4" />
-          Account
-        </Button>
-        <Button variant="ghost" className="w-full justify-start">
-          <LifeBuoy className="mr-2 h-4 w-4" />
-          Support
-        </Button>
+        <Link href="/" className="flex items-center gap-2 px-3 mb-4" onClick={handleLinkClick}>
+          <PenSquare className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold">Article Master</h1>
+        </Link>
+
+        <Link href="/new" className="w-full" onClick={handleLinkClick}>
+          <Button className="w-full justify-center mb-4">
+            New Doc
+          </Button>
+        </Link>
+
+        {navItems.map((item) => {
+          const isActive = (pathname === '/' && item.href === '/') || (pathname.startsWith(item.href) && item.href !== '/');
+          return (
+            <Link key={item.label} href={item.href} onClick={handleLinkClick}>
+              <Button
+                variant="ghost"
+                className={`w-full justify-start ${isActive ? 'bg-primary/10 text-primary' : ''}`}
+              >
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.label}
+              </Button>
+            </Link>
+          );
+        })}
       </div>
-      <div className="flex items-center justify-center p-2">
+      <div className="flex flex-col gap-2 p-2">
+        <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+        </Button>
         <ThemeToggle />
       </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        {/* Backdrop */}
+        <div
+          onClick={() => setIsOpen?.(false)}
+          className={cn(
+            'fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity md:hidden',
+            isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          )}
+        />
+        {/* Mobile Drawer */}
+        <aside
+          className={cn(
+            'fixed top-0 left-0 z-50 flex h-full w-72 flex-col border-r bg-background p-4 transition-transform duration-300 ease-in-out md:hidden',
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+            <div className="flex items-center justify-end mb-2">
+                <Button variant="ghost" size="icon" onClick={() => setIsOpen?.(false)}>
+                    <X className="h-5 w-5" />
+                </Button>
+            </div>
+            {/* We must wrap the content in a flex container to make it work */}
+            <div className="flex flex-col h-full">
+              <SidebarContent />
+            </div>
+        </aside>
+      </>
+    );
+  }
+
+  // Desktop Sidebar
+  return (
+    <aside className="flex h-full flex-col p-4 border-r">
+      <SidebarContent />
     </aside>
   );
 }
@@ -1525,6 +2117,50 @@ export { Separator }
 
 --- END OF FILE src/components/ui/separator.tsx ---
 
+--- START OF FILE src/components/ui/sonner.tsx ---
+"use client"
+
+import {
+  CircleCheckIcon,
+  InfoIcon,
+  Loader2Icon,
+  OctagonXIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
+import { useTheme } from "next-themes"
+import { Toaster as Sonner, type ToasterProps } from "sonner"
+
+const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme = "system" } = useTheme()
+
+  return (
+    <Sonner
+      theme={theme as ToasterProps["theme"]}
+      className="toaster group"
+      icons={{
+        success: <CircleCheckIcon className="size-4" />,
+        info: <InfoIcon className="size-4" />,
+        warning: <TriangleAlertIcon className="size-4" />,
+        error: <OctagonXIcon className="size-4" />,
+        loading: <Loader2Icon className="size-4 animate-spin" />,
+      }}
+      style={
+        {
+          "--normal-bg": "var(--popover)",
+          "--normal-text": "var(--popover-foreground)",
+          "--normal-border": "var(--border)",
+          "--border-radius": "var(--radius)",
+        } as React.CSSProperties
+      }
+      {...props}
+    />
+  )
+}
+
+export { Toaster }
+
+--- END OF FILE src/components/ui/sonner.tsx ---
+
 --- START OF FILE src/components/ui/switch.tsx ---
 "use client"
 
@@ -1560,6 +2196,164 @@ export { Switch }
 
 --- END OF FILE src/components/ui/switch.tsx ---
 
+--- START OF FILE src/context/AuthContext.tsx ---
+// src/context/AuthContext.tsx
+'use client';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { Loader2 } from 'lucide-react';
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+};
+export const useAuth = () => useContext(AuthContext);
+
+--- END OF FILE src/context/AuthContext.tsx ---
+
+--- START OF FILE src/hooks/useDocument.ts ---
+// src/hooks/useDocument.ts
+'use client';
+
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { ArticleDocument } from '@/types/document';
+import { useAuth } from '@/context/AuthContext';
+
+export const useDocument = (docId: string) => {
+  const [document, setDocument] = useState<ArticleDocument | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user || !docId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const docRef = doc(db, 'documents', docId);
+
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as DocumentData;
+        // Security check: ensure the user owns this document
+        if (data.userId === user.uid) {
+          setDocument({ id: docSnap.id, ...data } as ArticleDocument);
+        } else {
+          // User is trying to access a document they don't own
+          setDocument(null);
+        }
+      } else {
+        setDocument(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [docId, user]);
+
+  return { document, loading };
+};
+
+--- END OF FILE src/hooks/useDocument.ts ---
+
+--- START OF FILE src/hooks/useUserDocuments.ts ---
+// src/hooks/useUserDocuments.ts
+'use client';
+
+import { useState, useEffect } from 'react';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
+import { ArticleDocument } from '@/types/document';
+
+export const useUserDocuments = () => {
+  const [documents, setDocuments] = useState<ArticleDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      setDocuments([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const docsCollectionRef = collection(db, 'documents');
+    const q = query(
+      docsCollectionRef,
+      where('userId', '==', user.uid),
+      orderBy('lastEdited', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const userDocs = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as ArticleDocument));
+      setDocuments(userDocs);
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [user]);
+
+  return { documents, loading };
+};
+
+--- END OF FILE src/hooks/useUserDocuments.ts ---
+
+--- START OF FILE src/lib/firebase.ts ---
+// src/lib/firebase.ts
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+--- END OF FILE src/lib/firebase.ts ---
+
 --- START OF FILE src/lib/utils.ts ---
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -1569,6 +2363,49 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 --- END OF FILE src/lib/utils.ts ---
+
+--- START OF FILE src/types/document.ts ---
+// src/types/document.ts
+import { Timestamp } from "firebase/firestore";
+
+export interface ArticleDocument {
+  id: string; // The Firestore document ID
+  userId: string; // ID of the user who owns this document
+  title: string;
+  content: string; // The full content of the document (HTML or JSON)
+  snippet: string; // A short text-only snippet for the card view
+  lastEdited: Timestamp; // Firestore timestamp for sorting and display
+}
+
+--- END OF FILE src/types/document.ts ---
+
+--- START OF FILE src/types/env.d.ts ---
+// src/types/env.d.ts
+
+// This file provides type definitions for Node.js environment variables.
+// It helps TypeScript understand the types of variables defined in .env files.
+
+namespace NodeJS {
+  interface ProcessEnv {
+    // Server-side variables
+    GOOGLE_API_KEY: string;
+    ARTICLE_GENERATION_MODEL: string;
+    IMAGE_GENERATION_MODEL: string;
+    DOCUMENT_ANALYSIS_MODEL: string;
+    STRIPE_SECRET_KEY: string;
+    
+    // Public (client-side) variables
+    NEXT_PUBLIC_FIREBASE_API_KEY: string;
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: string;
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: string;
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: string;
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: string;
+    NEXT_PUBLIC_FIREBASE_APP_ID: string;
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: string;
+  }
+}
+
+--- END OF FILE src/types/env.d.ts ---
 
 --- START OF FILE src/types/wizard.ts ---
 // src/types/wizard.ts
@@ -1587,8 +2424,6 @@ export interface WizardFormData {
 
 --- START OF FILE tailwind.config.ts ---
 import type { Config } from "tailwindcss";
-import tailwindcss_animate from "tailwindcss-animate";
-import tailwindcss_typography from "@tailwindcss/typography";
 
 const config = {
   darkMode: ["class"],
@@ -1664,7 +2499,7 @@ const config = {
       },
     },
   },
-  plugins: [tailwindcss_animate, tailwindcss_typography],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config
 
 export default config

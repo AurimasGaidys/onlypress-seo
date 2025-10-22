@@ -3,9 +3,6 @@
 
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Separator } from "./ui/separator";
-import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
 import { BrainCircuit, Lightbulb, PenSquare, SearchCheck } from "lucide-react";
 
 export default function AIAssistantSidebar() {

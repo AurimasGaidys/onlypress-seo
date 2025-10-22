@@ -24,7 +24,7 @@ export default function Step1_Idea({ formData, updateFormData, handleNextStep }:
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Let's start with a topic</CardTitle>
+        <CardTitle className="text-2xl">Let&#39;s start with a topic</CardTitle>
         <CardDescription>What is the main subject you want to write an article about?</CardDescription>
       </CardHeader>
       <CardContent>

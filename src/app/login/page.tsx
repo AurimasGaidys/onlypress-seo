@@ -23,12 +23,12 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/'); // Redirect to dashboard on successful login
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'An unknown login error occurred.');
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
@@ -48,7 +48,7 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">Login</Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            Don't have an account?{' '}
+            Don&#39;t have an account?{' '}
             <Link href="/signup" className="underline">Sign up</Link>
           </div>
         </CardContent>
