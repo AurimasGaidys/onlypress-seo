@@ -14,6 +14,7 @@ interface Step1Props {
 }
 
 export default function Step1_Idea({ formData, updateFormData, handleNextStep }: Step1Props) {
+  const [activeTab, setActiveTab] = useState<'ai' | 'image' | 'manual'>('ai');
   const [topic, setTopic] = useState(formData.topic || '');
   const handleNext = () => {
     if (topic.trim()) {
@@ -29,15 +30,68 @@ export default function Step1_Idea({ formData, updateFormData, handleNextStep }:
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="topic">Article Topic</Label>
-            <Input id="topic" placeholder="e.g., The Future of Renewable Energy" value={topic} onChange={(e) => setTopic(e.target.value)} autoFocus />
+          {/* Tab Navigation */}
+          <div className="flex space-x-2">
+            <button
+              className={`px-4 py-2 rounded-md ${
+                activeTab === 'ai'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground'
+              }`}
+              onClick={() => setActiveTab('ai')}
+            >
+              Create with AI
+            </button>
+            <button
+              className={`px-4 py-2 rounded-md ${
+                activeTab === 'image'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground'
+              }`}
+              onClick={() => setActiveTab('image')}
+            >
+              Create from image
+            </button>
+            <button
+              className={`px-4 py-2 rounded-md ${
+                activeTab === 'manual'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground'
+              }`}
+              onClick={() => setActiveTab('manual')}
+            >
+              Create manually
+            </button>
           </div>
-          <Button onClick={handleNext} disabled={!topic.trim()} className="w-full">
-            Generate Titles <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          {activeTab === 'ai' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="topic">Article Topic</Label>
+                <Input id="topic" placeholder="e.g., The Future of Renewable Energy" value={topic} onChange={(e) => setTopic(e.target.value)} autoFocus />
+              </div>
+              <Button onClick={handleNext} disabled={!topic.trim()} className="w-full">
+                Generate Titles <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          {activeTab === 'image' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="imageFile">Upload Image</Label>
+                <Input id="imageFile" type="file" accept="image/*" />
+              </div>
+              <Button className="w-full">
+                Process Image
+              </Button>
+            </div>
+          )}
+          {activeTab === 'manual' && (
+            <div className="space-y-4">
+              <p>words todo</p>
+            </div>
+          )}
         </div>
       </CardContent>
-    </Card>
-  );
-}
+     </Card>
+   );
+ }
