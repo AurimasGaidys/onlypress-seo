@@ -31,7 +31,9 @@ export default function ArticleWizard() {
 
   const handleNextStep = () => { if (currentStep < TOTAL_STEPS) setCurrentStep((prev) => prev + 1); };
   const handlePreviousStep = () => { setCurrentStep((prev) => Math.max(1, prev)); };
-  const updateFormData = (data: Partial<WizardFormData>) => { setFormData((prev) => ({ ...prev, ...data })); };
+  const updateFormData = (data: Partial<WizardFormData>) => { 
+    setFormData((prev) => ({ ...prev, ...data })); 
+  };
 
   const handleFinish = async () => {
     if (!user) {

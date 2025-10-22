@@ -49,7 +49,7 @@ export default function Sidebar({ isMobile, isOpen, setIsOpen }: SidebarProps) {
       <div className="flex-grow space-y-2">
         <Link href="/" className="flex items-center gap-2 px-3 mb-4" onClick={handleLinkClick}>
           <PenSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold">Article Master</h1>
+          <h1 className="text-xl font-bold">Article Master AI</h1>
         </Link>
 
         <Link href="/new" className="w-full" onClick={handleLinkClick}>
