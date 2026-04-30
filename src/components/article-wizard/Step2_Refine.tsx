@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 interface Step2Props {
   formData: WizardFormData;
@@ -17,6 +18,7 @@ interface Step2Props {
 }
 
 export default function Step2_Refine({ formData, updateFormData, handleNextStep, handlePreviousStep }: Step2Props) {
+  const { user } = useAuth();
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTitle, setSelectedTitle] = useState(formData.selectedTitle || '');
@@ -30,9 +32,13 @@ export default function Step2_Refine({ formData, updateFormData, handleNextStep,
       }
       setIsLoading(true);
       try {
+        const token = await user?.getIdToken();
         const response = await fetch('/api/generate-titles', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
           body: JSON.stringify({ topic: formData.topic }),
         });
         if (!response.ok) {
