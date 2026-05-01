@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,9 +21,19 @@ export default function LoginPage() {
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/'); // Redirect to dashboard on successful login
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown login error occurred.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError(null);
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider());
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed.');
     }
   };
 
@@ -47,6 +57,13 @@ export default function LoginPage() {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full">Login</Button>
           </form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
+          </div>
+          <Button variant="outline" className="w-full" onClick={handleGoogleLogin}>
+            Continue with Google
+          </Button>
           <div className="mt-4 text-center text-sm">
             Don&#39;t have an account?{' '}
             <Link href="/signup" className="underline">Sign up</Link>

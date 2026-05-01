@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { api } from '@/lib/api-client';
 import { Loader2 } from 'lucide-react';
 
 interface AuthContextType {
@@ -20,6 +21,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
+      if (user) {
+        api.post('/api/auth/me', { name: user.displayName ?? undefined }).catch(console.error);
+      }
     });
     return () => unsubscribe();
   }, []);
