@@ -33,6 +33,7 @@ export const useUserDocuments = (folderId?: string) => {
       // UŽKLAUSA AGENTŪROS APLINKAI
       q = query(
           docsCollectionRef,
+          where('userId', '==', user.uid),
           where('agencyId', '==', activeWorkspace.id),
           where('folderId', '==', folderId || null),
           orderBy('lastEdited', 'desc')
@@ -42,9 +43,8 @@ export const useUserDocuments = (folderId?: string) => {
       const personalAgencyId = `personal_${user.uid}`;
       q = query(
           docsCollectionRef,
+          where('userId', '==', user.uid),
           where('agencyId', '==', personalAgencyId),
-          where('clientId', '==', activeClientId),
-          where('projectId', '==', activeProjectId),
           where('folderId', '==', folderId || null),
           orderBy('lastEdited', 'desc')
       );
