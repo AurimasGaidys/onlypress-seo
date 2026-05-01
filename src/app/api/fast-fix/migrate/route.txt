@@ -1,0 +1,168 @@
+// src/app/api/fast-fix/migrate/route.ts
+import { NextResponse } from 'next/server';
+import { adminDb } from '@/lib/firebase-admin';
+import { DatabaseTables } from '@/lib/constants/databaseTables';
+import { Agency } from '@/types/agency';
+import { AgencyPrivate } from '@/types/agencyPrivate';
+
+// Interface for Firestore Timestamp
+export interface FirestoreTimestamp {
+  _seconds: number;
+  _nanoseconds: number;
+}
+
+// Interface for workspace/agency member
+export interface WorkspaceMember {
+  [userId: string]: any; // Flexible structure for member data
+}
+
+// Interface for the workspace/agency data structure
+export interface WorkspaceData {
+  createdAt: FirestoreTimestamp;
+  description: string;
+  id: string;
+  isPersonal: boolean;
+  ownerId?: string;
+  members: WorkspaceMember;
+  name: string;
+  theme: string;
+  updatedAt: FirestoreTimestamp;
+}
+
+/**
+ * Write function to save agency data to the agency collection
+ * @param agencyData - Agency data conforming to the Agency type
+ * @returns Success status and document ID
+ */
+async function writeAgencyData(agencyData: Agency): Promise<{ success: boolean; id: string; error?: string }> {
+  try {
+    const agencyRef = adminDb.collection(DatabaseTables.agency).doc(agencyData.id);
+
+    await agencyRef.set(agencyData, { merge: true });
+
+    console.log(`✓ Agency data written successfully: ${agencyData.id}`);
+    return { success: true, id: agencyData.id };
+  } catch (error) {
+    console.error(`✗ Error writing agency data for ${agencyData.id}:`, error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, id: agencyData.id, error: message };
+  }
+}
+
+/**
+ * Write function to save agency private data to the agency-private collection
+ * @param agencyPrivateData - Agency private data conforming to the AgencyPrivate type
+ * @returns Success status and document ID
+ */
+async function writeAgencyPrivateData(agencyPrivateData: AgencyPrivate): Promise<{ success: boolean; id: string; error?: string }> {
+  try {
+    const agencyPrivateRef = adminDb.collection(DatabaseTables.agencyPrivate).doc(agencyPrivateData.id);
+
+    await agencyPrivateRef.set(agencyPrivateData, { merge: true });
+
+    console.log(`✓ Agency private data written successfully: ${agencyPrivateData.id}`);
+    return { success: true, id: agencyPrivateData.id };
+  } catch (error) {
+    console.error(`✗ Error writing agency private data for ${agencyPrivateData.id}:`, error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, id: agencyPrivateData.id, error: message };
+  }
+}
+
+/**
+ * Batch write function to save both agency and agency private data
+ * @param agencyData - Agency data conforming to the Agency type
+ * @param agencyPrivateData - Agency private data conforming to the AgencyPrivate type
+ * @returns Combined success status and results
+ */
+async function writeAgencyAndPrivateData(
+  data: WorkspaceData
+): Promise<{ success: boolean; agencyResult: any; agencyPrivateResult: any }> {
+  const agencyData: Agency = {
+    id: data.id,
+    name: data.name || '',
+    isPersonal: data.isPersonal || false,
+    created: 0,
+    updated: 0,
+    lastLogin: 0
+  }
+  const agencyPrivateData: AgencyPrivate = {
+    id: data.id,
+    name: data.name || '',
+    credit: 0,
+    ownerId: data.ownerId || '',
+    members: data.members,
+    creditDeductions: [],
+    email: '',
+    phone: '',
+    permission: {
+      manageUsers: true,
+      manageBilling: true,
+      manageSettings: true,
+      canCustomPrice: false
+    },
+    blocked: false,
+    created: 0,
+    updated: 0,
+    lastLogin: 0
+  }
+
+  const agencyResult = await writeAgencyData(agencyData);
+  const agencyPrivateResult = await writeAgencyPrivateData(agencyPrivateData);
+
+  const success = agencyResult.success && agencyPrivateResult.success;
+
+  return {
+    success,
+    agencyResult,
+    agencyPrivateResult
+  };
+}
+
+export async function GET() {
+  try {
+    console.log('=== Starting agencies data migration ===');
+
+    // Fetch all agencies from the database
+    const agenciesSnapshot = await adminDb
+      .collection('agencies')
+      .get();
+
+    const agencies: WorkspaceData[] = [];
+    const jobs: Promise<any>[] = [];
+
+    agenciesSnapshot.forEach((doc) => {
+      const agencyData = {
+        id: doc.id,
+        ...doc.data()
+      } as WorkspaceData;
+      jobs.push(writeAgencyAndPrivateData(agencyData));
+      agencies.push(agencyData);
+      console.log('Agency:', agencyData);
+    });
+
+
+    console.log(`=== Total agencies loaded: ${agencies.length} ===`);
+
+    await Promise.all(jobs).then((results) => {
+      console.log('=== Migration results ===');
+      results.forEach((result) => {
+        console.log(result);
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      count: agencies.length,
+      agencies: agencies
+    });
+
+  } catch (error) {
+    console.error('Error fetching agencies data:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    return NextResponse.json(
+      { error: `Failed to fetch agencies. ${message}` },
+      { status: 500 }
+    );
+  }
+}

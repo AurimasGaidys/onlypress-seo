@@ -1,11 +1,8 @@
-// src/app/new/page.tsx
-import ArticleWizard from '@/components/article-wizard/ArticleWizard';
+'use client';
+
+import CreationHub from '@/components/creation-hub/CreationHub';
 
 export default function NewDocumentPage() {
-  return (
-    <div>
-      {/* The wizard itself provides the main UI, so we don't need much else here */}
-      <ArticleWizard />
-    </div>
-  );
+  // Dabar komponentas pats pasiima kontekstą iš useWorkspace
+  return <CreationHub />;
 }

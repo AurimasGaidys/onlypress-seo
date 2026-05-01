@@ -1,58 +1,53 @@
+// src/hooks/useDocument.ts
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { ArticleDocument } from '@/types/document';
-import { api } from '@/lib/api-client';
-
-interface ApiDoc {
-  id: number;
-  title: string;
-  content: string;
-  snippet: string;
-  updated_at: string;
-  prompt_data?: {
-    topic?: string;
-    tone?: string;
-    keywords?: string[];
-  };
-}
-
-function mapDoc(d: ApiDoc): ArticleDocument {
-  return {
-    id: String(d.id),
-    title: d.title,
-    content: d.content,
-    snippet: d.snippet,
-    lastEdited: d.updated_at,
-    promptData: d.prompt_data,
-  };
-}
+import { useAuth } from '@/context/AuthContext';
+import { useUserAgencies } from './useUserAgencies';
 
 export const useDocument = (docId: string) => {
   const [document, setDocument] = useState<ArticleDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-
-  const fetchDoc = useCallback(async () => {
-    try {
-      const result = await api.get<{ data: ApiDoc }>(`/api/seo/documents/${docId}`);
-      setDocument(mapDoc(result.data));
-    } catch (err: any) {
-      if (err?.status === 404) setDocument(null);
-      else console.error('Failed to fetch document:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [docId]);
+  const { agencies, loading: agenciesLoading } = useUserAgencies();
 
   useEffect(() => {
-    if (!user || !docId) {
-      setLoading(false);
+    // Wait for both user and agencies to load
+    if (!user || !docId || agenciesLoading) {
+      if (!agenciesLoading) setLoading(false);
       return;
     }
-    fetchDoc();
-  }, [user, docId, fetchDoc]);
+
+    setLoading(true);
+    const docRef = doc(db, 'documents', docId);
+
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as DocumentData;
+        
+        // --- PRADĖK PAKEITIMĄ ČIA ---
+        const isOwner = data.userId === user.uid;
+        const isAgencyMember = data.agencyId ? agencies.some(a => a.id === data.agencyId) : false;
+
+        if (isOwner || isAgencyMember) {
+          setDocument({ ...data, id: docSnap.id } as ArticleDocument);
+        } else {
+          console.error("Permission denied: User is not the owner or a member of the document's agency.");
+          setDocument(null);
+        }
+        // --- PAKEITIMO PABAIGA ---
+
+      } else {
+        setDocument(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [docId, user, agencies, agenciesLoading]);
 
   return { document, loading };
 };
