@@ -1,11 +1,11 @@
-// src/components/document-card.tsx
+'use client';
+
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Download, MoreVertical, Trash2 } from "lucide-react";
-import { deleteDoc, doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -15,13 +15,14 @@ import {
 } from "./ui/dropdown-menu";
 
 interface DocumentCardProps {
-  id: string; // Add id to link to the correct page
+  id: string;
   title: string;
   snippet: string;
   lastEdited: string;
+  onDeleted?: (id: string) => void;
 }
 
-export default function DocumentCard({ id, title, snippet, lastEdited }: DocumentCardProps) {
+export default function DocumentCard({ id, title, snippet, lastEdited, onDeleted }: DocumentCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -32,25 +33,18 @@ export default function DocumentCard({ id, title, snippet, lastEdited }: Documen
     toast.info("Preparing document for download...");
 
     try {
-      const docRef = doc(db, 'documents', id);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const docData = docSnap.data();
-        const content = docData.content || ''; // Assuming content is stored in 'content' field
-        const blob = new Blob([content], { type: 'text/markdown;charset=utf-f8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${title.replace(/ /g, "_")}.md`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success("Document downloaded successfully.");
-      } else {
-        toast.error("Document not found.");
-      }
+      const result = await api.get<{ data: { content: string } }>(`/api/seo/documents/${id}`);
+      const content = result.data.content ?? '';
+      const blob = new Blob([content], { type: 'text/html;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${title.replace(/ /g, '_')}.html`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Document downloaded successfully.");
     } catch (error) {
       console.error("Error downloading document:", error);
       toast.error("Failed to download document.");
@@ -70,8 +64,9 @@ export default function DocumentCard({ id, title, snippet, lastEdited }: Documen
     setIsDeleting(true);
 
     try {
-      await deleteDoc(doc(db, 'documents', id));
+      await api.delete(`/api/seo/documents/${id}`);
       toast.success("Document deleted successfully.");
+      onDeleted?.(id);
     } catch (error) {
       console.error("Error deleting document:", error);
       toast.error("Failed to delete document.");
@@ -108,9 +103,7 @@ export default function DocumentCard({ id, title, snippet, lastEdited }: Documen
       </CardHeader>
       <Link href={`/docs/${id}`} className="flex flex-col flex-grow">
         <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground line-clamp-3">
-            {snippet}
-          </p>
+          <p className="text-sm text-muted-foreground line-clamp-3">{snippet}</p>
         </CardContent>
       </Link>
       <Link href={`/docs/${id}`}>
