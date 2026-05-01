@@ -50,7 +50,7 @@ export default function DashboardPage() {
               title={doc.title}
               snippet={doc.snippet}
               // Format the Firestore Timestamp into a readable string
-              lastEdited={formatDistanceToNow(doc.lastEdited.toDate(), { addSuffix: true })}
+              lastEdited={formatDistanceToNow(new Date(doc.lastEdited), { addSuffix: true })}
             />
           ))}
         </div>

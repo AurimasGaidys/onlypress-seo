@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { WizardFormData } from '@/types/wizard';
 import Step1_Idea from './Step1_Idea';
@@ -11,6 +9,7 @@ import Step2_Refine from './Step2_Refine';
 import Step3_Configure from './Step3_Configure';
 import Step4_Generate from './Step4_Generate';
 import { toast } from 'sonner';
+import { api } from '@/lib/api-client';
 
 const TOTAL_STEPS = 4;
 
@@ -35,7 +34,7 @@ export default function ArticleWizard() {
 
     const handleFinish = async () => {
         if (!user) {
-            toast.error("Authentication Error", { description: "You must be logged in to create a document." });
+            toast.error('Authentication Error', { description: 'You must be logged in to create a document.' });
             return;
         }
 
@@ -48,7 +47,7 @@ export default function ArticleWizard() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     topic: formData.topic,
@@ -60,33 +59,30 @@ export default function ArticleWizard() {
 
             if (!articleResponse.ok) {
                 const errorData = await articleResponse.json();
-                throw new Error(errorData.error || "Failed to generate article content.");
+                throw new Error(errorData.error || 'Failed to generate article content.');
             }
 
-            // API already returns HTML — no conversion needed
             const { article: htmlContent } = await articleResponse.json();
             const snippet = htmlContent.replace(/<[^>]+>/g, ' ').substring(0, 150).replace(/\s+/g, ' ').trim();
 
-            const docRef = await addDoc(collection(db, 'documents'), {
-                userId: user.uid,
+            const result = await api.post<{ data: { id: number } }>('/api/seo/documents', {
                 title: formData.selectedTitle || 'Untitled Document',
                 content: htmlContent,
                 snippet,
-                lastEdited: serverTimestamp(),
-                promptData: {
+                prompt_data: {
                     topic: formData.topic,
                     tone: formData.articleConfig.tone,
                     keywords: formData.keywords,
                 },
             });
 
-            toast.success("Article generated and saved successfully!");
-            router.push(`/docs/${docRef.id}`);
+            toast.success('Article generated and saved successfully!');
+            router.push(`/docs/${result.data.id}`);
 
         } catch (error) {
-            console.error("Error in finish process:", error);
+            console.error('Error in finish process:', error);
             const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-            toast.error("Process Failed", { description: message });
+            toast.error('Process Failed', { description: message });
             setIsSubmitting(false);
         }
     };
